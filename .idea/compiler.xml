@@ -10,5 +10,10 @@
         <module name="mealplanner.main" />
       </profile>
     </annotationProcessing>
+    <bytecodeTargetLevel>
+      <module name="mealplanner" target="17" />
+      <module name="mealplanner.main" target="17" />
+      <module name="mealplanner.test" target="17" />
+    </bytecodeTargetLevel>
   </component>
 </project>
