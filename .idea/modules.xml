@@ -3,6 +3,9 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/meal-planner.iml" filepath="$PROJECT_DIR$/.idea/meal-planner.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/mealplanner.iml" filepath="$PROJECT_DIR$/.idea/modules/mealplanner.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/mealplanner.main.iml" filepath="$PROJECT_DIR$/.idea/modules/mealplanner.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/mealplanner.test.iml" filepath="$PROJECT_DIR$/.idea/modules/mealplanner.test.iml" />
     </modules>
   </component>
 </project>
