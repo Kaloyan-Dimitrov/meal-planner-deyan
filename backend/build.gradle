@@ -2,6 +2,7 @@ plugins {
 	id 'java'
 	id 'org.springframework.boot' version '3.5.3'
 	id 'io.spring.dependency-management' version '1.1.7'
+	id 'nu.studer.jooq' version '8.2'
 }
 
 group = 'com.deyan'
@@ -25,12 +26,42 @@ repositories {
 
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-web'
+	implementation 'org.jooq:jooq:3.18.5'
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
 	annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+	jooqGenerator 'org.postgresql:postgresql:42.7.1'
 }
 
 tasks.named('test') {
 	useJUnitPlatform()
 }
+jooq {
+	version = '3.18.5'
+	configurations {
+		main {
+			generationTool {
+				jdbc {
+					driver = 'org.postgresql.Driver'
+					url = 'jdbc:postgresql://localhost:5432/mealplanner'
+					user = 'postgres'
+					password = 'postgres'
+				}
+				generator {
+					name = 'org.jooq.codegen.DefaultGenerator'
+					database {
+						name = 'org.jooq.meta.postgres.PostgresDatabase'
+						inputSchema = 'public'
+					}
+					target {
+						packageName = 'com.deyan.mealplanner.jooq'
+						directory = "$buildDir/generated-src/jooq"
+					}
+				}
+			}
+		}
+	}
+}
+
