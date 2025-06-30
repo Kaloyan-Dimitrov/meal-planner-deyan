@@ -27,6 +27,9 @@ repositories {
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	implementation 'org.jooq:jooq:3.18.5'
+	implementation 'org.postgresql:postgresql:42.7.1'
+	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
 	annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
