@@ -7,4 +7,11 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
-      - "5432:5432"
+      - "5433:5432"
+    volumes:
+      - mealplanner-data:/var/lib/postgresql/data
+
+volumes:
+  mealplanner-data:
+    external: true
+    name: meal-planner_mealplanner-data
