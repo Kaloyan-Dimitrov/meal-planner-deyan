@@ -48,7 +48,7 @@ jooq {
 			generationTool {
 				jdbc {
 					driver = 'org.postgresql.Driver'
-					url = 'jdbc:postgresql://localhost:5432/mealplanner'
+					url = 'jdbc:postgresql://localhost:5433/mealplanner'
 					user = 'postgres'
 					password = 'postgres'
 				}
