@@ -5,11 +5,11 @@ import org.springframework.test.context.DynamicPropertySource
 import org.testcontainers.containers.PostgreSQLContainer
 import org.testcontainers.spock.Testcontainers
 import spock.lang.Specification;
+@SpringBootTest(classes = MealPlannerApplication)
 @Testcontainers
-@SpringBootTest
 abstract class AbstractIT extends Specification {
     static final PostgreSQLContainer POSTGRES =
-            new PostgreSQLContainer('postgres:16-alpine')
+            new PostgreSQLContainer('postgres:15')
                         .withDatabaseName('mealplanner')
                         .withUsername('postgres')
                         .withPassword('postgres');
