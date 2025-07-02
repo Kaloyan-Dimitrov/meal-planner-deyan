@@ -3,6 +3,7 @@ plugins {
 	id 'org.springframework.boot' version '3.5.3'
 	id 'io.spring.dependency-management' version '1.1.7'
 	id 'nu.studer.jooq' version '8.2'
+	id 'groovy'
 }
 
 group = 'com.deyan'
@@ -23,20 +24,38 @@ configurations {
 repositories {
 	mavenCentral()
 }
-
+def spock = '2.4-M6-groovy-4.0'
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	implementation 'org.jooq:jooq:3.18.5'
 	implementation 'org.postgresql:postgresql:42.7.1'
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+	implementation 'org.springframework.boot:spring-boot-starter-jooq'
 
 	developmentOnly 'org.springframework.boot:spring-boot-devtools'
 	annotationProcessor 'org.springframework.boot:spring-boot-configuration-processor'
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 
 	jooqGenerator 'org.postgresql:postgresql:42.7.1'
+
+	// Spock + Groovy
+	testImplementation platform("org.spockframework:spock-bom:$spock")
+	testImplementation "org.spockframework:spock-core"
+	testImplementation "org.spockframework:spock-spring"
+
+	// Testcontainers
+	testImplementation 'org.testcontainers:postgresql:1.19.8'
+	testImplementation 'org.testcontainers:spock:1.19.8'
+
+	implementation 'org.flywaydb:flyway-core:10.11.0'
+	implementation 'org.flywaydb:flyway-database-postgresql'
+
+	testImplementation 'org.testcontainers:junit-jupiter:1.19.8'
 }
+
+
 
 tasks.named('test') {
 	useJUnitPlatform()
