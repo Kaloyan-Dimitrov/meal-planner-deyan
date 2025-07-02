@@ -2,10 +2,12 @@ package com.deyan.mealplanner.service
 import com.deyan.mealplanner.AbstractIT
 import com.deyan.mealplanner.dto.IngredientDTO
 import com.deyan.mealplanner.dto.NewIngredientDTO
-import org.springframework.beans.factory.annotation.Autowired;
-
+import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.context.ApplicationContext;
 class IngredientServiceSpec extends AbstractIT{
 
+    @Autowired ApplicationContext ctx
     @Autowired
     IngredientService service
 
@@ -46,4 +48,11 @@ class IngredientServiceSpec extends AbstractIT{
         then:
         thrown(IllegalArgumentException)
     }
+    def "spring context sanity"() {
+        expect:
+        assert ctx != null                           // should pass
+        assert ctx.containsBean("ingredientService") // true
+        assert service != null                       // no more NPE
+    }
+
 }
