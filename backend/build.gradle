@@ -53,6 +53,9 @@ dependencies {
 	implementation 'org.flywaydb:flyway-database-postgresql'
 
 	testImplementation 'org.testcontainers:junit-jupiter:1.19.8'
+
+	implementation("org.springframework.boot:spring-boot-starter-webflux")   // WebClient
+	testImplementation("com.github.tomakehurst:wiremock-jre8:3.4.2")          // Mock HTTP in tests
 }
 
 
