@@ -8,7 +8,8 @@ plugins {
 
 group = 'com.deyan'
 version = '0.0.1-SNAPSHOT'
-
+// ========= force every org.jooq:* artifact to 3.19.9 =========
+ext['jooq.version'] = '3.19.9'
 java {
 	toolchain {
 		languageVersion = JavaLanguageVersion.of(17)
@@ -27,7 +28,7 @@ repositories {
 def spock = '2.4-M6-groovy-4.0'
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-web'
-	implementation 'org.jooq:jooq:3.18.5'
+	implementation 'org.jooq:jooq:3.19.9'
 	implementation 'org.postgresql:postgresql:42.7.1'
 	implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
 	implementation 'org.springframework.boot:spring-boot-starter-jooq'
@@ -53,6 +54,12 @@ dependencies {
 	implementation 'org.flywaydb:flyway-database-postgresql'
 
 	testImplementation 'org.testcontainers:junit-jupiter:1.19.8'
+
+	implementation("org.springframework.boot:spring-boot-starter-webflux")   // WebClient
+	testImplementation("com.github.tomakehurst:wiremock-jre8:3.4.2")          // Mock HTTP in tests
+
+	compileOnly "org.projectlombok:lombok:1.18.32"
+	annotationProcessor "org.projectlombok:lombok:1.18.32"
 }
 
 
@@ -61,7 +68,7 @@ tasks.named('test') {
 	useJUnitPlatform()
 }
 jooq {
-	version = '3.18.5'
+	version = '3.19.9'
 	configurations {
 		main {
 			generationTool {
@@ -86,4 +93,19 @@ jooq {
 		}
 	}
 }
+import java.nio.file.*
+def loadDotEnvIntoBootRun = { Task t ->
+	Path env = rootProject.file('.env').toPath()
+	if (Files.exists(env)) {
+		Files.readAllLines(env).each { line ->
+			// ignore comments / blanks
+			if (!line.startsWith('#') && line.contains('=')) {
+				def (k,v) = line.split('=',2)
+				t.environment k.trim(), v.trim()
+			}
+		}
+	}
+}
+
+tasks.named('bootRun').configure(loadDotEnvIntoBootRun)
 

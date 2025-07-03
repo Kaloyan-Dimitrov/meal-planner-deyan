@@ -1,0 +1,2 @@
+ALTER TABLE meal_plan
+DROP COLUMN goal;
