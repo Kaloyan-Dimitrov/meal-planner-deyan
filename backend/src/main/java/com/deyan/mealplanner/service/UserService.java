@@ -96,7 +96,7 @@ public class UserService {
                         .and(field(name("latest_progress", "rn"), Integer.class).eq(1)))
                 .fetch()
                 .map(record -> new UserDTO(
-                        record.get(USERS.ID).longValue(),
+                        record.get(USERS.ID),
                         record.get(USERS.NAME),
                         record.get(USERS.EMAIL),
                         record.get(field(name("latest_progress", "weight"), BigDecimal.class)),
@@ -134,7 +134,7 @@ public class UserService {
                 .execute();
 
         return new UserDTO(
-                userId.longValue(),
+                userId,
                 request.name(),
                 request.email(),
                 request.weight(),
@@ -145,7 +145,7 @@ public class UserService {
 
     public UserDTO getUserById(Long id) {
         var userRecord = dsl.selectFrom(USERS)
-                .where(USERS.ID.eq(id.intValue()))
+                .where(USERS.ID.eq(id))
                 .fetchOne();
 
         if (userRecord == null) {
@@ -159,7 +159,7 @@ public class UserService {
                 .fetchOne();
 
         return new UserDTO(
-                userRecord.getId().longValue(),
+                userRecord.getId(),
                 userRecord.getName(),
                 userRecord.getEmail(),
                 latestProgress != null ? latestProgress.getWeight() : null,
@@ -169,15 +169,14 @@ public class UserService {
     }
 
     public void deleteUserById(Long id) {
-        int userId = id.intValue();
 
         // Delete child records first
         dsl.deleteFrom(USER_PROGRESS)
-                .where(USER_PROGRESS.USER_ID.eq(userId))
+                .where(USER_PROGRESS.USER_ID.eq(id))
                 .execute();
 
         int deleted = dsl.deleteFrom(USERS)
-                .where(USERS.ID.eq(userId))
+                .where(USERS.ID.eq(id))
                 .execute();
 
         if (deleted == 0) {
@@ -189,7 +188,7 @@ public class UserService {
         boolean exists = dsl.fetchExists(
                 dsl.selectOne()
                         .from(USERS)
-                        .where(USERS.ID.eq(userId.intValue()))
+                        .where(USERS.ID.eq(userId))
         );
 
         if (!exists) {
@@ -199,7 +198,7 @@ public class UserService {
         var today = LocalDateTime.now();
 
         dsl.insertInto(USER_PROGRESS)
-                .set(USER_PROGRESS.USER_ID, userId.intValue())
+                .set(USER_PROGRESS.USER_ID, userId)
                 .set(USER_PROGRESS.WEIGHT, weight)
                 .set(USER_PROGRESS.DATE, today)
                 .execute();
