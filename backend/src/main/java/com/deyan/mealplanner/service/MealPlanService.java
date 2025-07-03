@@ -22,6 +22,8 @@ import static org.jooq.impl.DSL.*;
 public class MealPlanService {
     private final RecipeAPIAdapter external;
     private final DSLContext db;
+    private final int THRESHOLD_KCAL=200;
+    private final int THRESHOLD_MACRO=20;
     public MealPlanService(RecipeAPIAdapter external, DSLContext dsl) {
         this.external = external;
         this.db = dsl;
@@ -42,13 +44,36 @@ public class MealPlanService {
                 : apiPlan.nutrients().carbohydrates().intValue();
         int fats = f     != null ? f
                 : apiPlan.nutrients().fat().intValue();
+        int actualKcal = apiPlan.nutrients().calories().intValue();
+        int actualProtein = apiPlan.nutrients().protein().intValue();
+        int actualCarb = apiPlan.nutrients().carbohydrates().intValue();
+        int actualFat = apiPlan.nutrients().fat().intValue();
         // 1) MEAL_PLAN -------------------------------------------------------
         Long planId = (Long) db.fetchValue(
-                "insert into meal_plan(user_id, target_kcal, target_protein_g, "
-                        + "target_carb_g, target_fat_g) "
-                        + "values (?, ?, ?, ?, ?) "
-                        + "returning id",
-                userId, targetKcal, protein, carb, fats);
+                "insert into meal_plan (" +
+                        "   user_id, " +
+                        "   target_kcal, target_protein_g, target_carb_g, target_fat_g, " +
+                        "   actual_kcal, actual_protein_g, actual_carb_g, actual_fat_g " +
+                        ") values (?, ?, ?, ?, ?, ?, ?, ?, ?) returning id",
+                userId,
+                targetKcal,      protein, carb,      fats,    // targets
+                actualKcal,      actualProtein, actualCarb,      actualFat     // actuals
+        );
+        long kcalDelta  = Math.abs(actualKcal    - targetKcal);
+        long protDelta  = Math.abs(actualProtein - protein);
+        long carbDelta  = Math.abs(actualCarb    - carb);
+        long fatDelta   = Math.abs(actualFat     - fats);
+        if (kcalDelta > THRESHOLD_KCAL ||
+                protDelta > THRESHOLD_MACRO ||
+                carbDelta > THRESHOLD_MACRO ||
+                fatDelta  > THRESHOLD_MACRO) {
+
+            /* one central warning with the details */
+            log.warn("⚠️  Plan {} differs from targets — kcal Δ={}, P Δ={}, C Δ={}, F Δ={}",
+                    planId, kcalDelta, protDelta, carbDelta, fatDelta);
+        }
+
+
         // 2) loop meals ------------------------------------------------------
         int idx = 0;
         for (MealPlanDTO.Meal m : apiPlan.meals()) {
