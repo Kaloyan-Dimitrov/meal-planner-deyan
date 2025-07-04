@@ -1,0 +1,2 @@
+ALTER TABLE recipe
+    ADD COLUMN IF NOT EXISTS url TEXT;
