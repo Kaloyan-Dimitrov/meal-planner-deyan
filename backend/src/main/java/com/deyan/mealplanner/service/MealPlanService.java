@@ -38,6 +38,7 @@ public class MealPlanService {
             throw new IllegalStateException(
                     "Spoonacular returned no meals for kcal=" + targetKcal + ", days=" + days);
         }
+        int targetCalories = (targetKcal != null) ? targetKcal : apiPlan.nutrients().calories().intValue();
         int protein = p != null ? p
                 : apiPlan.nutrients().protein().intValue();
         int carb = c   != null ? c
@@ -56,10 +57,10 @@ public class MealPlanService {
                         "   actual_kcal, actual_protein_g, actual_carb_g, actual_fat_g " +
                         ") values (?, ?, ?, ?, ?, ?, ?, ?, ?) returning id",
                 userId,
-                targetKcal,      protein, carb,      fats,    // targets
+                targetCalories,      protein, carb,      fats,    // targets
                 actualKcal,      actualProtein, actualCarb,      actualFat     // actuals
         );
-        long kcalDelta  = Math.abs(actualKcal    - targetKcal);
+        long kcalDelta  = Math.abs(actualKcal    - targetCalories);
         long protDelta  = Math.abs(actualProtein - protein);
         long carbDelta  = Math.abs(actualCarb    - carb);
         long fatDelta   = Math.abs(actualFat     - fats);

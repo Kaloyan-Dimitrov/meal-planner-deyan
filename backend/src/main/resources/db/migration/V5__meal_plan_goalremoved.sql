@@ -1,2 +1,2 @@
 ALTER TABLE meal_plan
-DROP COLUMN goal;
+DROP COLUMN IF EXISTS goal;
