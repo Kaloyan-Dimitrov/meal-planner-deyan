@@ -32,9 +32,7 @@ public class IngredientService {
         boolean exists = dsl.fetchExists(
                 dsl.selectOne()
                         .from(INGREDIENT)
-                        .where(INGREDIENT.NAME.eq(ingredientDTO.name())
-                                .and(INGREDIENT.CATEGORY.eq(ingredientDTO.category())))
-        );
+                        .where(INGREDIENT.NAME.eq(ingredientDTO.name())));
         if (exists) {
             throw new IllegalArgumentException("Ingredient already exists: " + ingredientDTO.name());
         }
@@ -42,8 +40,6 @@ public class IngredientService {
         // 1) plain INSERT — **no RETURNING**
         dsl.insertInto(INGREDIENT)
                 .set(INGREDIENT.NAME,          ingredientDTO.name())
-                .set(INGREDIENT.CATEGORY,      ingredientDTO.category())
-                .set(INGREDIENT.KCAL_PER_100G, ingredientDTO.kcalPer100g())
                 .execute();
 
         // 2) fetch the generated PK from the session sequence
@@ -53,7 +49,7 @@ public class IngredientService {
                 .where(INGREDIENT.NAME.eq(ingredientDTO.name())) // or any unique field
                 .fetchOne(INGREDIENT.ID);
 
-        return new IngredientDTO(id, ingredientDTO.name(), ingredientDTO.category(), ingredientDTO.kcalPer100g());
+        return new IngredientDTO(id, ingredientDTO.name());
     }
 
     public IngredientDTO update(Long id, IngredientDTO dto) {
@@ -61,13 +57,9 @@ public class IngredientService {
                 """
                 UPDATE ingredient
                    SET name           = ?,
-                       category       = ?,
-                       kcal_per_100g  = ?
                  WHERE id = ?
                 """,
                 dto.name(),
-                dto.category(),
-                dto.kcalPer100g(),
                 id
         );
 
@@ -79,9 +71,7 @@ public class IngredientService {
         IngredientRecord rec = dsl.fetchOne(INGREDIENT, INGREDIENT.ID.eq(id));
         return new IngredientDTO(
                 rec.getId(),
-                rec.getName(),
-                rec.getCategory(),
-                rec.getKcalPer_100g()
+                rec.getName()
         );
     }
     public void delete(Long id){
@@ -93,7 +83,6 @@ public class IngredientService {
         }
     }
     private IngredientDTO toDto(IngredientRecord ingredient) {
-        return new IngredientDTO(ingredient.getId(),ingredient.getName()
-                ,ingredient.getCategory(),ingredient.getKcalPer_100g());
+        return new IngredientDTO(ingredient.getId(),ingredient.getName());
     }
 }

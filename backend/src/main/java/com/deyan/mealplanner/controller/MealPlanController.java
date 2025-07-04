@@ -1,8 +1,13 @@
 package com.deyan.mealplanner.controller;
 
+import com.deyan.mealplanner.dto.MealPlanDetailsDTO;
+import com.deyan.mealplanner.dto.MealPlanSummaryDTO;
 import com.deyan.mealplanner.service.MealPlanService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
 @Slf4j
 @RestController
 @RequestMapping("api/users/{userId}/meal-plans")
@@ -19,6 +24,19 @@ public class MealPlanController {
                 r.targetKcal(), r.proteinG(), r.carbG(), r.fatG(),r.days()!=null ? r.days() : null);
         return new CreatedDTO(id);
     }
+    @GetMapping("/{planId}")
+    public MealPlanDetailsDTO getMealPlanById(@PathVariable Long userId, @PathVariable Long planId) {
+        return mealPlanService.getPlanById(userId, planId);
+    }
+    @GetMapping
+    public List<MealPlanSummaryDTO> getUserMealPlans(@PathVariable Long userId) {
+        return mealPlanService.getUserPlans(userId);
+    }
+    @DeleteMapping("/{planId}")
+    public void deleteMealPlan(@PathVariable Long userId, @PathVariable Long planId) {
+        mealPlanService.deletePlan(userId, planId);
+    }
+
 
     public record CreateReq(Integer targetKcal,
                             Integer days,

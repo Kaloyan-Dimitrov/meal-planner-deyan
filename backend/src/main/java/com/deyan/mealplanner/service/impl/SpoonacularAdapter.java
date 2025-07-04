@@ -127,7 +127,7 @@ public class SpoonacularAdapter implements RecipeAPIAdapter {
                 .uri(INFO_ENDPOINT, id, apiKey)
                 .retrieve()
                 .bodyToMono(RecipeDetailsDTO.class)
-                .doOnNext(r -> log.debug("Recipe {} → {}", id, r.title()))
+                .doOnNext(r -> log.debug("Recipe {} → title={}, url={}", id, r.title(), r.sourceUrl()))
                 .block();
     }
 }

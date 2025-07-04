@@ -9,7 +9,8 @@ public record RecipeDetailsDTO(
         int readyInMinutes,       // -> recipe.prep_time
         int servings,             // -> recipe.servings
         Nutrition nutrition,
-        List<ExtendedIngredient> extendedIngredients
+        List<ExtendedIngredient> extendedIngredients,
+        String sourceUrl
 ) {
     public record Nutrition(
             BigDecimal calories,
