@@ -1,11 +1,16 @@
 package com.deyan.mealplanner.service;
 
 import com.deyan.mealplanner.dto.MealPlanDTO;
+import com.deyan.mealplanner.dto.MealPlanDetailsDTO;
+import com.deyan.mealplanner.dto.MealPlanSummaryDTO;
 import com.deyan.mealplanner.dto.RecipeDetailsDTO;
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.util.List;
 
 import static com.deyan.mealplanner.jooq.tables.Ingredient.INGREDIENT;
 import static com.deyan.mealplanner.jooq.tables.MealPlan.MEAL_PLAN;
@@ -108,10 +113,7 @@ public class MealPlanService {
                 .set(RECIPE.DESCRIPTION,            (String) null)          // fill later if you like
                 .set(RECIPE.PREP_TIME,              r.readyInMinutes())
                 .set(RECIPE.SERVINGS,               r.servings())
-                .set(RECIPE.KCAL_PER_SERVING,       r.nutrition().calories())
-                .set(RECIPE.PROTEIN_G_PER_SERVING,  r.nutrition().protein())
-                .set(RECIPE.CARB_G_PER_SERVING,     r.nutrition().carbohydrates())
-                .set(RECIPE.FAT_G_PER_SERVING,      r.nutrition().fat())
+                .set(RECIPE.URL, r.sourceUrl() != null ? r.sourceUrl() : "")
                 .onConflict(RECIPE.ID).doUpdate()
                 .set(RECIPE.NAME, r.title())        // update title if it changed
                 .execute();
@@ -163,5 +165,125 @@ public class MealPlanService {
                                 .where(MEAL_PLAN_RECIPE.MEAL_PLAN_ID.eq(planId))
                                 .groupBy(RECIPE_INGREDIENT.INGREDIENT_ID)
                 ).execute();
+    }
+    public MealPlanDetailsDTO getPlanById(long userId, long planId) {
+        var plan = db.selectFrom(MEAL_PLAN)
+                .where(MEAL_PLAN.ID.eq(planId).and(MEAL_PLAN.USER_ID.eq(userId)))
+                .fetchOne();
+        if (plan == null) throw new IllegalArgumentException("Plan not found");
+
+        var mealRecords = db.select(
+                        MEAL_PLAN_RECIPE.DAY_INDEX,
+                        MEAL_PLAN_RECIPE.MEAL_SLOT
+                )
+                .select(RECIPE.fields()) // separate call
+                .from(MEAL_PLAN_RECIPE)
+                .join(RECIPE).on(RECIPE.ID.eq(MEAL_PLAN_RECIPE.RECIPE_ID))
+                .where(MEAL_PLAN_RECIPE.MEAL_PLAN_ID.eq(planId))
+                .fetch();
+
+        var meals = mealRecords.stream().map(r -> {
+            var recipeId = r.get(RECIPE.ID);
+            var ingredients = db.select(
+                            INGREDIENT.ID,
+                            INGREDIENT.NAME,
+                            RECIPE_INGREDIENT.QUANTITY_G,
+                            RECIPE_INGREDIENT.UNIT
+                    ).from(RECIPE_INGREDIENT)
+                    .join(INGREDIENT).on(INGREDIENT.ID.eq(RECIPE_INGREDIENT.INGREDIENT_ID))
+                    .where(RECIPE_INGREDIENT.RECIPE_ID.eq(recipeId))
+                    .fetch()
+                    .stream()
+                    .map(ir -> new RecipeDetailsDTO.ExtendedIngredient(
+                            ir.get(INGREDIENT.ID),
+                            ir.get(INGREDIENT.NAME),
+                            ir.get(RECIPE_INGREDIENT.QUANTITY_G),
+                            ir.get(RECIPE_INGREDIENT.UNIT)
+                    )).toList();
+
+
+            var recipe = new MealPlanDetailsDTO.RecipeDTO(
+                    recipeId,
+                    r.get(RECIPE.NAME),
+                    r.get(RECIPE.PREP_TIME),
+                    r.get(RECIPE.SERVINGS),
+                    r.get(RECIPE.URL),
+                    ingredients
+            );
+
+            return new MealPlanDetailsDTO.MealSlotDTO(
+                    "Day " + r.get(MEAL_PLAN_RECIPE.DAY_INDEX),
+                    r.get(MEAL_PLAN_RECIPE.MEAL_SLOT),
+                    recipe
+            );
+        }).toList();
+
+        var shoppingList = db.select(
+                        INGREDIENT.ID,
+                        INGREDIENT.NAME,
+                        SHOPPING_LIST_ITEM.QUANTITY
+                )
+                .from(SHOPPING_LIST)
+                .join(SHOPPING_LIST_ITEM).on(SHOPPING_LIST.ID.eq(SHOPPING_LIST_ITEM.SHOPPING_LIST_ID))
+                .join(INGREDIENT).on(INGREDIENT.ID.eq(SHOPPING_LIST_ITEM.INGREDIENT_ID))
+                .where(SHOPPING_LIST.MEAL_PLAN_ID.eq(planId))
+                .fetch()
+                .map(r -> new MealPlanDetailsDTO.ShoppingListItemDTO(
+                        r.get(INGREDIENT.ID),
+                        r.get(INGREDIENT.NAME),
+                        r.get(SHOPPING_LIST_ITEM.QUANTITY)
+                ));
+
+        return new MealPlanDetailsDTO(
+                plan.getId(),
+                BigDecimal.valueOf(plan.getTargetKcal()), BigDecimal.valueOf(plan.getTargetProteinG()), BigDecimal.valueOf(plan.getTargetCarbG()), BigDecimal.valueOf(plan.getTargetFatG()),
+                BigDecimal.valueOf(plan.getActualKcal()), BigDecimal.valueOf(plan.getActualProteinG()), BigDecimal.valueOf(plan.getActualCarbG()), BigDecimal.valueOf(plan.getActualFatG()),
+                meals,
+                shoppingList
+        );
+    }
+    public List<MealPlanSummaryDTO> getUserPlans(long userId) {
+        return db.select(
+                        MEAL_PLAN.ID,
+                        MEAL_PLAN.TARGET_KCAL,
+                        MEAL_PLAN.ACTUAL_KCAL,
+                        MEAL_PLAN.CREATED_AT
+                )
+                .from(MEAL_PLAN)
+                .where(MEAL_PLAN.USER_ID.eq(userId))
+                .orderBy(MEAL_PLAN.CREATED_AT.desc())
+                .fetch()
+                .map(r -> new MealPlanSummaryDTO(
+                        r.get(MEAL_PLAN.ID),
+                        BigDecimal.valueOf(r.get(MEAL_PLAN.TARGET_KCAL)),
+                        BigDecimal.valueOf(r.get(MEAL_PLAN.ACTUAL_KCAL)),
+                        r.get(MEAL_PLAN.CREATED_AT).toString()
+                ));
+    }
+    public void deletePlan(long userId, long planId) {
+        var valid = db.fetchExists(
+                db.selectFrom(MEAL_PLAN)
+                        .where(MEAL_PLAN.ID.eq(planId).and(MEAL_PLAN.USER_ID.eq(userId)))
+        );
+        if (!valid) throw new IllegalArgumentException("Plan not found or unauthorized");
+
+        db.deleteFrom(SHOPPING_LIST_ITEM)
+                .where(SHOPPING_LIST_ITEM.SHOPPING_LIST_ID.in(
+                        db.select(SHOPPING_LIST.ID)
+                                .from(SHOPPING_LIST)
+                                .where(SHOPPING_LIST.MEAL_PLAN_ID.eq(planId))
+                )).execute();
+
+        db.deleteFrom(SHOPPING_LIST)
+                .where(SHOPPING_LIST.MEAL_PLAN_ID.eq(planId))
+                .execute();
+
+        db.deleteFrom(MEAL_PLAN_RECIPE)
+                .where(MEAL_PLAN_RECIPE.MEAL_PLAN_ID.eq(planId))
+                .execute();
+
+        db.deleteFrom(MEAL_PLAN)
+                .where(MEAL_PLAN.ID.eq(planId))
+                .execute();
     }
 }
