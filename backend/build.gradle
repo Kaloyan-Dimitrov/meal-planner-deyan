@@ -25,7 +25,7 @@ configurations {
 repositories {
 	mavenCentral()
 }
-def spock = '2.4-M6-groovy-4.0'
+
 dependencies {
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	implementation 'org.jooq:jooq:3.19.9'
@@ -41,10 +41,6 @@ dependencies {
 
 	jooqGenerator 'org.postgresql:postgresql:42.7.1'
 
-	// Spock + Groovy
-	testImplementation platform("org.spockframework:spock-bom:$spock")
-	testImplementation "org.spockframework:spock-core"
-	testImplementation "org.spockframework:spock-spring"
 
 	// Testcontainers
 	testImplementation 'org.testcontainers:postgresql:1.19.8'
@@ -56,7 +52,8 @@ dependencies {
 	testImplementation 'org.testcontainers:junit-jupiter:1.19.8'
 
 	implementation("org.springframework.boot:spring-boot-starter-webflux")   // WebClient
-	testImplementation("com.github.tomakehurst:wiremock-jre8:3.4.2")          // Mock HTTP in tests
+	testImplementation 'com.github.tomakehurst:wiremock-jre8:2.35.0'
+	// Mock HTTP in tests
 
 	compileOnly "org.projectlombok:lombok:1.18.32"
 	annotationProcessor "org.projectlombok:lombok:1.18.32"
