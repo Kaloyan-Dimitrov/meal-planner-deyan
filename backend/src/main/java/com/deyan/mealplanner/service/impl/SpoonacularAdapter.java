@@ -1,6 +1,7 @@
 package com.deyan.mealplanner.service.impl;
 
 import com.deyan.mealplanner.dto.MealPlanDTO;
+import com.deyan.mealplanner.dto.NutritionResponse;
 import com.deyan.mealplanner.dto.RecipeDetailsDTO;
 import com.deyan.mealplanner.dto.WeeklyMealPlanDTO;
 import com.deyan.mealplanner.service.RecipeAPIAdapter;
@@ -123,11 +124,28 @@ public class SpoonacularAdapter implements RecipeAPIAdapter {
     @Override
     public RecipeDetailsDTO getRecipe(Long id) {
 
-        return web.get()
+        RecipeDetailsDTO dto =  web.get()
                 .uri(INFO_ENDPOINT, id, apiKey)
                 .retrieve()
                 .bodyToMono(RecipeDetailsDTO.class)
                 .doOnNext(r -> log.debug("Recipe {} → title={}, url={}", id, r.title(), r.sourceUrl()))
                 .block();
+        log.info("Nutrition for recipe {} → {}", id, dto.nutrition());
+    return dto;
     }
+    public Optional<NutritionResponse> fetchNutritionWidget(Long id) {
+        String url = String.format("/recipes/%d/nutritionWidget.json?apiKey=%s", id, apiKey);
+
+        try {
+            return Optional.ofNullable(web.get()
+                    .uri(url)
+                    .retrieve()
+                    .bodyToMono(NutritionResponse.class)
+                    .block());
+        } catch (Exception e) {
+            log.warn("Failed to fetch nutritionWidget for id={}", id, e);
+            return Optional.empty();
+        }
+    }
+
 }
