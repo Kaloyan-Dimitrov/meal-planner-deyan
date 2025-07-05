@@ -137,6 +137,22 @@ public class MealPlanService {
                 .onConflict(RECIPE.ID).doUpdate()
                 .set(RECIPE.NAME, r.title())        // update title if it changed
                 .execute();
+
+            external.fetchNutritionWidget(r.id()).ifPresent(widget -> {
+                BigDecimal kcal = parse(widget.calories());
+                BigDecimal protein = parse(widget.protein());
+                BigDecimal fat = parse(widget.fat());
+                BigDecimal carbs = parse(widget.carbs());
+
+                db.update(RECIPE)
+                        .set(RECIPE.CALORIES, kcal)
+                        .set(RECIPE.PROTEIN, protein)
+                        .set(RECIPE.FAT, fat)
+                        .set(RECIPE.CARBOHYDRATES, carbs)
+                        .where(RECIPE.ID.eq(r.id()))
+                        .execute();
+
+        });
     }
 
     private void upsertIngredients(RecipeDetailsDTO r) {
@@ -378,5 +394,12 @@ public class MealPlanService {
         db.deleteFrom(MEAL_PLAN)
                 .where(MEAL_PLAN.ID.eq(planId))
                 .execute();
+    }
+    private BigDecimal parse(String input) {
+        try {
+            return new BigDecimal(input.replaceAll("[^\\d.]", ""));
+        } catch (Exception e) {
+            return null;
+        }
     }
 }
