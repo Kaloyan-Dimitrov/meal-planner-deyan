@@ -1,5 +1,6 @@
 package com.deyan.mealplanner.service;
 
+import com.deyan.mealplanner.dto.AchievementDTO;
 import com.deyan.mealplanner.dto.CreateUserRequest;
 import com.deyan.mealplanner.dto.UserDTO;
 import com.deyan.mealplanner.dto.WeightEntryDTO;
@@ -11,9 +12,13 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 
+import static com.deyan.mealplanner.jooq.tables.Achievement.ACHIEVEMENT;
+import static com.deyan.mealplanner.jooq.tables.UserAchievement.USER_ACHIEVEMENT;
 import static com.deyan.mealplanner.jooq.tables.UserProgress.USER_PROGRESS;
 import static com.deyan.mealplanner.jooq.tables.Users.USERS;
 import static org.jooq.impl.DSL.field;
@@ -183,7 +188,13 @@ public class UserService {
             throw new RuntimeException("User not found or already deleted");
         }
     }
-
+    public List<AchievementDTO> getUserAchievements(Long userId){
+        return dsl.select(ACHIEVEMENT.ID, ACHIEVEMENT.NAME, ACHIEVEMENT.DESCRIPTION, USER_ACHIEVEMENT.COMPLETED_AT)
+                .from(USER_ACHIEVEMENT)
+                .join(ACHIEVEMENT).on(ACHIEVEMENT.ID.eq(USER_ACHIEVEMENT.ACHIEVEMENT_ID))
+                .where(USER_ACHIEVEMENT.USER_ID.eq(userId))
+                .fetchInto(AchievementDTO.class);
+    }
     public WeightEntryDTO addUserWeightEntry(Long userId, BigDecimal weight) {
         boolean exists = dsl.fetchExists(
                 dsl.selectOne()
@@ -195,14 +206,97 @@ public class UserService {
             throw new IllegalArgumentException("User not found with ID: " + userId);
         }
 
-        var today = LocalDateTime.now();
+        LocalDate today = LocalDate.now();
+        LocalDateTime now = LocalDateTime.now();
 
+        // Check if user has already logged today
+        boolean alreadyLoggedToday = dsl.fetchExists(
+                dsl.selectOne()
+                        .from(USER_PROGRESS)
+                        .where(USER_PROGRESS.USER_ID.eq(userId))
+                        .and(USER_PROGRESS.DATE.cast(LocalDate.class).eq(today))
+        );
+
+        // Insert new weight entry
         dsl.insertInto(USER_PROGRESS)
                 .set(USER_PROGRESS.USER_ID, userId)
                 .set(USER_PROGRESS.WEIGHT, weight)
-                .set(USER_PROGRESS.DATE, today)
+                .set(USER_PROGRESS.DATE, now)
                 .execute();
 
-        return new WeightEntryDTO(weight, today);
+        int newStreak = 1; // default to 1 if this is the first/only entry
+
+        if (!alreadyLoggedToday) {
+            // Fetch latest entry date before today
+            LocalDate lastEntryDate = dsl
+                    .select(USER_PROGRESS.DATE)
+                    .from(USER_PROGRESS)
+                    .where(USER_PROGRESS.USER_ID.eq(userId))
+                    .and(USER_PROGRESS.DATE.cast(LocalDate.class).lt(today))
+                    .orderBy(USER_PROGRESS.DATE.desc())
+                    .limit(1)
+                    .fetchOptionalInto(LocalDateTime.class)
+                    .map(LocalDateTime::toLocalDate)
+                    .orElse(null);
+
+            Integer currentStreak = dsl
+                    .select(USERS.DAY_STREAK)
+                    .from(USERS)
+                    .where(USERS.ID.eq(userId))
+                    .fetchOneInto(Integer.class);
+
+            if (currentStreak == null) currentStreak = 0;
+
+            if (lastEntryDate != null && lastEntryDate.equals(today.minusDays(1))) {
+                newStreak = currentStreak + 1;
+            }
+
+            // Update streak in USERS table
+            dsl.update(USERS)
+                    .set(USERS.DAY_STREAK, newStreak)
+                    .where(USERS.ID.eq(userId))
+                    .execute();
+        }
+        checkAchievements(userId,newStreak);
+
+        return new WeightEntryDTO(weight, now);
+    }
+
+    private void checkAchievements(Long userId, Integer newStreak) {
+        Set<Long> completed = dsl.select(USER_ACHIEVEMENT.ACHIEVEMENT_ID)
+                .from(USER_ACHIEVEMENT)
+                .where(USER_ACHIEVEMENT.USER_ID.eq(userId))
+                .fetchSet(USER_ACHIEVEMENT.ACHIEVEMENT_ID);
+
+        // === Streak-based achievements ===
+        if (newStreak >= 1 && !completed.contains(1L)) {
+            assignAchievement(userId, 1L); // 1-day streak
+        }
+        if (newStreak >= 7 && !completed.contains(2L)) {
+            assignAchievement(userId, 2L); // 7-day streak
+        }
+        if (newStreak >= 30 && !completed.contains(3L)) {
+            assignAchievement(userId, 3L); // 30-day streak
+        }
+
+        // === Count-based achievements ===
+        int totalLogs = dsl.fetchCount(USER_PROGRESS, USER_PROGRESS.USER_ID.eq(userId));
+
+        if (totalLogs >= 10 && !completed.contains(4L)) {
+            assignAchievement(userId, 4L); // 10 logs
+        }
+        if (totalLogs >= 20 && !completed.contains(5L)) {
+            assignAchievement(userId, 5L); // 20 logs
+        }
+        if (totalLogs >= 30 && !completed.contains(6L)) {
+            assignAchievement(userId, 6L); // 30 logs
+        }
+    }
+    private void assignAchievement(Long userId, Long achievementId) {
+        dsl.insertInto(USER_ACHIEVEMENT)
+                .set(USER_ACHIEVEMENT.USER_ID, userId)
+                .set(USER_ACHIEVEMENT.ACHIEVEMENT_ID, achievementId)
+                .set(USER_ACHIEVEMENT.COMPLETED_AT, LocalDateTime.now())
+                .execute();
     }
 }
