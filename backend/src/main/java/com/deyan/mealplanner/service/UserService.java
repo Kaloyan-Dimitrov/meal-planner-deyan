@@ -15,6 +15,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 
 import static com.deyan.mealplanner.jooq.tables.Achievement.ACHIEVEMENT;
 import static com.deyan.mealplanner.jooq.tables.UserAchievement.USER_ACHIEVEMENT;
@@ -256,35 +257,46 @@ public class UserService {
                     .where(USERS.ID.eq(userId))
                     .execute();
         }
-
-        // Achievement: 3-day streak
-        if (newStreak == 3) {
-            assignAchievement(userId, 1L); // 3-day streak ID
-        }
-
-        // Achievement: 10 total entries
-        int totalLogs = dsl.fetchCount(USER_PROGRESS, USER_PROGRESS.USER_ID.eq(userId));
-        if (totalLogs == 10) {
-            assignAchievement(userId, 2L); // 10 entries ID
-        }
+        checkAchievements(userId,newStreak);
 
         return new WeightEntryDTO(weight, now);
     }
 
-    private void assignAchievement(Long userId, Long achievementId) {
-        boolean hasIt = dsl.fetchExists(
-                dsl.selectOne()
-                        .from(USER_ACHIEVEMENT)
-                        .where(USER_ACHIEVEMENT.USER_ID.eq(userId))
-                        .and(USER_ACHIEVEMENT.ACHIEVEMENT_ID.eq(achievementId))
-        );
+    private void checkAchievements(Long userId, Integer newStreak) {
+        Set<Long> completed = dsl.select(USER_ACHIEVEMENT.ACHIEVEMENT_ID)
+                .from(USER_ACHIEVEMENT)
+                .where(USER_ACHIEVEMENT.USER_ID.eq(userId))
+                .fetchSet(USER_ACHIEVEMENT.ACHIEVEMENT_ID);
 
-        if (!hasIt) {
-            dsl.insertInto(USER_ACHIEVEMENT)
-                    .set(USER_ACHIEVEMENT.USER_ID, userId)
-                    .set(USER_ACHIEVEMENT.ACHIEVEMENT_ID, achievementId)
-                    .set(USER_ACHIEVEMENT.COMPLETED_AT, LocalDateTime.now())
-                    .execute();
+        // === Streak-based achievements ===
+        if (newStreak >= 1 && !completed.contains(1L)) {
+            assignAchievement(userId, 1L); // 1-day streak
         }
+        if (newStreak >= 7 && !completed.contains(2L)) {
+            assignAchievement(userId, 2L); // 7-day streak
+        }
+        if (newStreak >= 30 && !completed.contains(3L)) {
+            assignAchievement(userId, 3L); // 30-day streak
+        }
+
+        // === Count-based achievements ===
+        int totalLogs = dsl.fetchCount(USER_PROGRESS, USER_PROGRESS.USER_ID.eq(userId));
+
+        if (totalLogs >= 10 && !completed.contains(4L)) {
+            assignAchievement(userId, 4L); // 10 logs
+        }
+        if (totalLogs >= 20 && !completed.contains(5L)) {
+            assignAchievement(userId, 5L); // 20 logs
+        }
+        if (totalLogs >= 30 && !completed.contains(6L)) {
+            assignAchievement(userId, 6L); // 30 logs
+        }
+    }
+    private void assignAchievement(Long userId, Long achievementId) {
+        dsl.insertInto(USER_ACHIEVEMENT)
+                .set(USER_ACHIEVEMENT.USER_ID, userId)
+                .set(USER_ACHIEVEMENT.ACHIEVEMENT_ID, achievementId)
+                .set(USER_ACHIEVEMENT.COMPLETED_AT, LocalDateTime.now())
+                .execute();
     }
 }
