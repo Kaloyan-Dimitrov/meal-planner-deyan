@@ -1,5 +1,6 @@
 package com.deyan.mealplanner.controller;
 
+import com.deyan.mealplanner.dto.AchievementDTO;
 import com.deyan.mealplanner.dto.CreateUserRequest;
 import com.deyan.mealplanner.dto.UserDTO;
 import com.deyan.mealplanner.dto.WeightEntryDTO;
@@ -35,5 +36,9 @@ public class UserController {
     @PostMapping("/{id}/weight")
     public WeightEntryDTO addWeightEntry(@PathVariable Long id, @RequestBody WeightEntryDTO weightEntryDTO){
         return userService.addUserWeightEntry(id,weightEntryDTO.weight());
+    }
+    @GetMapping("/{id}/achievements")
+    public List<AchievementDTO> getAchievements(@PathVariable Long id){
+        return userService.getUserAchievements(id);
     }
 }
