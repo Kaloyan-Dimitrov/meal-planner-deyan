@@ -1,4 +1,4 @@
-package com.deyan.mealplanner.service;
+package com.deyan.mealplanner.service.interfaces;
 
 import com.deyan.mealplanner.dto.MealPlanDTO;
 import com.deyan.mealplanner.dto.NutritionResponse;
