@@ -8,6 +8,7 @@ import org.jooq.DSLContext;
 
 import org.jooq.Table;
 import org.jooq.impl.DSL;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -27,8 +28,11 @@ import static org.jooq.impl.DSL.name;
 @Service
 public class UserService {
     private final DSLContext dsl;
-    public UserService(DSLContext dsl) {
+    private final PasswordEncoder passwordEncoder;
+
+    public UserService(DSLContext dsl, PasswordEncoder passwordEncoder) {
         this.dsl = dsl;
+        this.passwordEncoder = passwordEncoder;
     }
 
     public List<UserDTO> getAllUsers() {
@@ -118,7 +122,7 @@ public class UserService {
         dsl.insertInto(USERS)
                 .set(USERS.NAME, request.name())
                 .set(USERS.EMAIL, request.email())
-                .set(USERS.PASSWORD, request.password())
+                .set(USERS.PASSWORD, passwordEncoder.encode(request.password()))
                 .set(USERS.DAY_STREAK, 0)
                 .execute(); // <— no returning
 
