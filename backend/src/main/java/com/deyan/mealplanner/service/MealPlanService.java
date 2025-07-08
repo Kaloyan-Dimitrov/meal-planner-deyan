@@ -4,13 +4,13 @@ import com.deyan.mealplanner.dto.MealPlanDTO;
 import com.deyan.mealplanner.dto.MealPlanDetailsDTO;
 import com.deyan.mealplanner.dto.MealPlanSummaryDTO;
 import com.deyan.mealplanner.dto.RecipeDetailsDTO;
+import com.deyan.mealplanner.service.interfaces.RecipeAPIAdapter;
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -22,7 +22,6 @@ import static com.deyan.mealplanner.jooq.tables.Recipe.RECIPE;
 import static com.deyan.mealplanner.jooq.tables.RecipeIngredient.RECIPE_INGREDIENT;
 import static com.deyan.mealplanner.jooq.tables.ShoppingList.SHOPPING_LIST;
 import static com.deyan.mealplanner.jooq.tables.ShoppingListItem.SHOPPING_LIST_ITEM;
-import static org.jooq.impl.DSL.*;
 
 @Slf4j
 @Service
