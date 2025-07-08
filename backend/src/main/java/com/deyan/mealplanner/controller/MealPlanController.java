@@ -10,7 +10,7 @@ import java.util.List;
 
 @Slf4j
 @RestController
-@RequestMapping("api/users/{userId}/meal-plans")
+@RequestMapping("/api/users/{userId}/meal-plans")
 public class MealPlanController {
     private final MealPlanService mealPlanService;
     public MealPlanController(MealPlanService mealPlanService) {
