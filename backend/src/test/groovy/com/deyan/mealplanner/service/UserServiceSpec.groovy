@@ -1,95 +1,69 @@
 //package com.deyan.mealplanner.service
 //
-//import com.deyan.mealplanner.AbstractIT          // <- your base class
+//import com.deyan.mealplanner.MealPlannerApplication
 //import com.deyan.mealplanner.dto.CreateUserRequest
 //import org.jooq.DSLContext
+//import org.jooq.impl.DSL
 //import org.springframework.beans.factory.annotation.Autowired
-//import spock.lang.Unroll
-//import static org.jooq.impl.DSL.*
+//import org.springframework.boot.test.context.SpringBootTest
+//import org.springframework.context.ApplicationContext
+//import org.springframework.security.crypto.password.PasswordEncoder
+//import spock.lang.Specification
+//import spock.lang.Stepwise
+//@SpringBootTest(classes = MealPlannerApplication)
+//@Stepwise
+//class UserServiceSpec extends Specification  {
 //
+//    @Autowired(required = false) ApplicationContext ctx      //      A
+//    @Autowired(required = false) UserService     userService
+//    @Autowired DSLContext      dsl
+//    @Autowired PasswordEncoder encoder
 //
-//import static com.deyan.mealplanner.jooq.tables.Users.USERS
-//import static com.deyan.mealplanner.jooq.tables.UserProgress.USER_PROGRESS
-//
-//class UserServiceSpec extends AbstractIT{
-//    @Autowired
-//    UserService userService           // class under test
-//
-//    @Autowired
-//    DSLContext dsl                    // handy for DB assertions
-//
-//    def "createUser() persists a user and an initial weight entry"() {
+//    def setup() {
+//        println "\n---- Spring ctx present? " + (ctx != null)
+//        if (ctx) {
+//            println "---- Beans of type UserService found: " +
+//                    ctx.getBeanNamesForType(UserService).toList()
+//        }
+//    }
+//    def "createUser() persists user and hashes password"() {
 //        given:
-//        def req = new CreateUserRequest("Alice", "alice@mail.com", "secret", new BigDecimal("63.5"))
+//        def req = new CreateUserRequest("alice@mail.com","Alice","hunter2", 70 as BigDecimal)
 //
 //        when:
 //        def dto = userService.createUser(req)
 //
-//        then: "DTO reflects what we sent"
-//        dto.name()      == "Alice"
-//        dto.email()     == "alice@mail.com"
-//        dto.weight()    == new BigDecimal("63.5")
-//        dto.dayStreak() == 0
-//        dto.id()        != null
-//
-//        and: "row exists in USERS"
-//        boolean exists = dsl.fetchExists(selectOne().from(USERS).where(USERS.ID.eq(dto.id().intValue())))
-//        exists
-//
-//        and: "row exists in USER_PROGRESS"
-//        dsl.fetchExists(
-//                dsl.selectOne()
-//                        .from(USER_PROGRESS)
-//                        .where(USER_PROGRESS.USER_ID.eq(dto.id().intValue()) & USER_PROGRESS.WEIGHT.eq(new BigDecimal("63.5")))
-//        )
+//        then:
+//        dto != null
+//        dsl.fetchCount(DSL.table("users"), DSL.field("id").eq(dto.id())) == 1
+//        !encoder.matches("hunter2",
+//                dsl.fetchValue("select password from users where id = ?", dto.id()) as String)
 //    }
 //
-//    def "createUser() throws if e-mail already exists"() {
-//        given: "an existing user"
-//        userService.createUser(new CreateUserRequest("Bob","bob@mail.com","pwd",new BigDecimal("70")))
 //
-//        when:  userService.createUser(new CreateUserRequest("Bobby","bob@mail.com","pwd2",new BigDecimal("71")))
-//        then:  thrown(IllegalArgumentException)
+//    def "duplicate e-mail throws"() {
+//        given: userService.createUser(
+//                new CreateUserRequest("bob@mail.com","Bob","pw", 80G as BigDecimal))
+//
+//        when:  userService.createUser(
+//                new CreateUserRequest("bob@mail.com","Bob","pw", 80G as BigDecimal))
+//
+//        then:
+//        thrown(IllegalArgumentException)
 //    }
 //
-//    @Unroll
-//    def "getUserById() returns latest weight entry (case: #variant)"() {
+//    def "deleteUserById() cleans up both tables"() {
 //        given:
-//        def dto = userService.createUser(new CreateUserRequest("Cara","c+${variant}@x.com","pwd", startWeight as BigDecimal))
-//        and: "extra progress entries (if any)"
-//        extraWeights.each {
-//            userService.addUserWeightEntry(dto.id(), it as BigDecimal)
-//            sleep 5                                    // ensure date is later (spock tests execute fast!)
-//        }
+//        long id = userService.createUser(
+//                new CreateUserRequest("eve@mail.com","Eve","pw", 60G as BigDecimal)).id()
 //
 //        when:
-//        def result = userService.getUserById(dto.id())
+//        userService.deleteUserById(id)
 //
 //        then:
-//        result.weight() == expectedWeight
-//
-//
-//        where:
-//        variant  | startWeight | extraWeights                         | expectedWeight
-//        "none"   | 60          | []                                   | 60
-//        "later"  | 65          | [66.3, 67.1]                         | 67.1
-//        "equal"  | 80          | [80]                                 | 80
-//    }
-//
-//    def "deleteUserById() removes user and its progress"() {
-//        given:
-//        def dto = userService.createUser(new CreateUserRequest("Dan","dan@x.com","pwd", 50 as BigDecimal))
-//
-//        when: "delete"
-//        userService.deleteUserById(dto.id())
-//
-//        then:
-//        !dsl.fetchExists(dsl.selectOne().from(USERS).where(USERS.ID.eq(dto.id().intValue())))
-//        !dsl.fetchExists(dsl.selectOne().from(USER_PROGRESS).where(USER_PROGRESS.USER_ID.eq(dto.id().intValue())))
-//    }
-//
-//    def "addUserWeightEntry() rejects unknown user id"() {
-//        when: userService.addUserWeightEntry(999L, new BigDecimal("77"))
-//        then: thrown(IllegalArgumentException)
+//        !dsl.fetchExists(
+//                DSL.selectOne().from("users").where(DSL.field("id").eq(id)))
+//        !dsl.fetchExists(
+//                DSL.selectOne().from("user_progress").where(DSL.field("user_id").eq(id)))
 //    }
 //}
