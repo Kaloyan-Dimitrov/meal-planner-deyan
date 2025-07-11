@@ -42,9 +42,15 @@ dependencies {
 	jooqGenerator 'org.postgresql:postgresql:42.7.1'
 
 
+	testImplementation 'org.testcontainers:junit-jupiter:1.19.8'
+	testImplementation 'org.flywaydb:flyway-core'          // migrations inside tests
+	testImplementation platform("org.spockframework:spock-bom:2.3-groovy-4.0")
+	testImplementation "org.spockframework:spock-core"
+	testImplementation "org.spockframework:spock-spring"
+
 	// Testcontainers
 	testImplementation 'org.testcontainers:postgresql:1.19.8'
-	testImplementation 'org.testcontainers:spock:1.19.8'
+
 
 	implementation 'org.flywaydb:flyway-core:10.11.0'
 	implementation 'org.flywaydb:flyway-database-postgresql'
@@ -109,4 +115,10 @@ def loadDotEnvIntoBootRun = { Task t ->
 }
 
 tasks.named('bootRun').configure(loadDotEnvIntoBootRun)
-
+tasks.named('test') {
+	useJUnitPlatform()
+	testLogging {
+		events 'PASSED', 'FAILED', 'SKIPPED'
+		exceptionFormat 'short'
+	}
+}
