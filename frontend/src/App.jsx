@@ -1,14 +1,13 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
 import './App.css'
+import HomePage from './pages/HomePage'
+import { Routes } from 'react-router-dom'
+import { Route } from 'react-router-dom'
 
 function App() {
   return (
-    <div className="bg-blue-600 text-white p-8 rounded-xl">
-      <h1 className="text-3xl font-bold">Tailwind is working! 🎉</h1>
-      <p className="mt-2">Welcome to your Meal Planner frontend.</p>
-    </div>
+    <Routes>
+      <Route path="/" element={<HomePage />} />
+    </Routes>
   );
 }
 
