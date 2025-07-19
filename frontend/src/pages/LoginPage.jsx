@@ -1,14 +1,37 @@
 import { useState } from "react";
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom';
 function LoginPage() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false)
+    const [error, setError] = useState('');
+    const navigate = useNavigate();
 
-    const handleLogin = (e) => {
+    const handleLogin = async (e) => {
         e.preventDefault();
-        // TODO: connect to backend
-        console.log('Login clicked:', { email, password });
+        setError('');
+
+        try {
+            const response = await fetch('http://localhost:8080/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password }),
+            });
+
+            const text = await response.text();
+
+            if (!response.ok) {
+                throw new Error(text || 'Login failed');
+            }
+
+            const { token } = JSON.parse(text);
+            localStorage.setItem('jwt', token);
+            navigate('/');
+
+        } catch (err) {
+            setError(err.message);
+        }
     };
     return (
         <div className="min-h-screen flex items-center justify-center bg-peach text-gray-800">
@@ -62,6 +85,11 @@ function LoginPage() {
                     Login
                 </button>
             </form>
+            {error && (
+                <div className="text-sm text-red-600 mb-4 text-center">
+                    {error}
+                </div>
+            )}
         </div>
     );
 }
