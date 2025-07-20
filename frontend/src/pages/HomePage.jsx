@@ -22,8 +22,12 @@ function HomePage() {
         >
           Register
         </button>
-        <button onClick={() => navigate('/dashboard')}>Force Go to Dashboard</button>
-
+        <button
+          onClick={() => navigate('/dashboard')}
+          className="bg-paleblue px-6 py-3 rounded hover:bg-blue-700 transition"
+        >
+          Go To Dashboard
+        </button>
       </div>
     </div>
   );
