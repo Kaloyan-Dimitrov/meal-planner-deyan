@@ -38,7 +38,15 @@ function RegisterPage() {
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-peach text-gray-800">
-            <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
+            <div className=" relative bg-white p-8 rounded-lg shadow-md w-full max-w-md">
+                <button
+                    type="button"
+                    onClick={() => navigate('/')}
+                    className="absolute top-2 left-3 text-blue-600 text-sm hover:underline"
+                >
+                    ← Back to Homepage
+                </button>
+
                 <form onSubmit={handleRegister}>
                     <h2 className="text-2xl font-semibold mb-6 text-center">Register</h2>
 
