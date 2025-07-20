@@ -22,6 +22,8 @@ function HomePage() {
         >
           Register
         </button>
+        <button onClick={() => navigate('/dashboard')}>Force Go to Dashboard</button>
+
       </div>
     </div>
   );
