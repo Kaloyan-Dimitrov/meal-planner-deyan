@@ -10,20 +10,25 @@ function HomePage() {
         Your personal AI-powered meal planner. Generate weekly plans, track nutrition, and auto-create shopping lists — all tailored to your goals.
       </p>
       <div className="flex gap-4">
-  <button
-    onClick={() => navigate('/login')}
-    className="bg-paleblue px-6 py-3 rounded hover:bg-blue-700 transition"
-  >
-    Login
-  </button>
-  <button
-    onClick={() => navigate('/register')}
-    className="bg-paleblue px-6 py-3 rounded hover:bg-blue-700 transition"
-  >
-    Register
-  </button>
-</div>
-
+        <button
+          onClick={() => navigate('/login')}
+          className="bg-paleblue px-6 py-3 rounded hover:bg-blue-700 transition"
+        >
+          Login
+        </button>
+        <button
+          onClick={() => navigate('/register')}
+          className="bg-paleblue px-6 py-3 rounded hover:bg-blue-700 transition"
+        >
+          Register
+        </button>
+        <button
+          onClick={() => navigate('/dashboard')}
+          className="bg-paleblue px-6 py-3 rounded hover:bg-blue-700 transition"
+        >
+          Go To Dashboard
+        </button>
+      </div>
     </div>
   );
 }

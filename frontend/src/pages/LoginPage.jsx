@@ -2,39 +2,47 @@ import { useState } from "react";
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 function LoginPage() {
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [showPassword, setShowPassword] = useState(false)
-    const [error, setError] = useState('');
-    const navigate = useNavigate();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false)
+  const [error, setError] = useState('');
+  const navigate = useNavigate();
 
-    const handleLogin = async (e) => {
-        e.preventDefault();
-        setError('');
+const handleLogin = async (e) => {
+  e.preventDefault();
+  setError('');
 
-        try {
-            const response = await fetch('http://localhost:8080/auth/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password }),
-            });
+  try {
+    const res = await fetch('http://localhost:8080/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
 
-            const text = await response.text();
+    const text = await res.text();
 
-            if (!response.ok) {
-                throw new Error(text || 'Login failed');
-            }
+    if (!res.ok) {
+      try {
+        const data = JSON.parse(text);
+        throw new Error(data.message || 'Login failed');
+      } catch {
+        throw new Error(text || 'Login failed');
+      }
+    }
 
-            const { token } = JSON.parse(text);
-            localStorage.setItem('jwt', token);
-            navigate('/');
+    const { token } = JSON.parse(text);
+    localStorage.setItem('jwt', token);
 
-        } catch (err) {
-            setError(err.message);
-        }
-    };
-    return (
-        <div className="min-h-screen flex items-center justify-center bg-peach text-gray-800">
+    console.log('✅ Login success, navigating to /dashboard');
+    navigate('/dashboard');
+  } catch (err) {
+    console.error('❌ Login error:', err.message);
+    setError(err.message);
+  }
+};
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-peach text-gray-800">
       <div className="relative bg-white p-8 rounded-lg shadow-md w-full max-w-md">
 
         {/* Top-left link */}
@@ -106,6 +114,6 @@ function LoginPage() {
         </p>
       </div>
     </div>
-    );
+  );
 }
 export default LoginPage
