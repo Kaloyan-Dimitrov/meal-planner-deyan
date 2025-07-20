@@ -6,9 +6,12 @@ import { Route } from 'react-router-dom'
 import RegisterPage from './pages/RegisterPage'
 import DashboardPage from './pages/DashboardPage'
 import PrivateRoute from './components/PrivateRoute'
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 function App() {
   return (
+    <>
     <Routes>
       <Route path="/" element={<HomePage />} />
       <Route path="/login" element={<LoginPage />} />
@@ -22,6 +25,8 @@ function App() {
     }
   />
     </Routes>
+    <ToastContainer position="top-center" autoClose={3000} />
+    </>
   );
 }
 

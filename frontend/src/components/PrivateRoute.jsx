@@ -1,6 +1,8 @@
 import { Navigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
+import { toast } from 'react-toastify';
 
+let hasShownToast = false;
 function isValidJwt(token) {
   if (!token || typeof token !== 'string') return false;
   const parts = token.split('.');
@@ -21,16 +23,23 @@ function PrivateRoute({ children }) {
   const token = localStorage.getItem('jwt');
 
   if (!isValidJwt(token)) {
-    console.warn('Invalid JWT structure');
+    if (!hasShownToast) {
+      toast.warn('Invalid session. Please log in again.');
+      hasShownToast = true;
+    }
     return <Navigate to="/login" replace />;
   }
 
   if (isTokenExpired(token)) {
-    console.warn('Token expired');
+    if (!hasShownToast) {
+      toast.info('Session expired. Please log in again.');
+      hasShownToast = true;
+    }
     return <Navigate to="/login" replace />;
   }
 
-  return children;
+  hasShownToast = false; // reset when access is valid
+  return children
 }
 
 export default PrivateRoute;
