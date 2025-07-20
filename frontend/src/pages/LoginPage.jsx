@@ -27,7 +27,7 @@ function LoginPage() {
 
             const { token } = JSON.parse(text);
             localStorage.setItem('jwt', token);
-            navigate('/');
+            navigate('/dashboard');
 
         } catch (err) {
             setError(err.message);
