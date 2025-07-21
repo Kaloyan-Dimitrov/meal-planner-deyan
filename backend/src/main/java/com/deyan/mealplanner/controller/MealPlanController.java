@@ -4,6 +4,7 @@ import com.deyan.mealplanner.dto.MealPlanDetailsDTO;
 import com.deyan.mealplanner.dto.MealPlanSummaryDTO;
 import com.deyan.mealplanner.service.MealPlanService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,9 +25,18 @@ public class MealPlanController {
                 r.targetKcal(), r.proteinG(), r.carbG(), r.fatG(),r.days()!=null ? r.days() : null);
         return new CreatedDTO(id);
     }
+    @PostMapping("/{planId}/regenerate")
+    public MealPlanDetailsDTO regenerateMealPlan(@PathVariable Long userId, @PathVariable Long planId) {
+        return mealPlanService.regenerate(userId, planId);
+    }
     @GetMapping("/{planId}")
     public MealPlanDetailsDTO getMealPlanById(@PathVariable Long userId, @PathVariable Long planId) {
         return mealPlanService.getPlanById(userId, planId);
+    }
+    @GetMapping("/latest")
+    public ResponseEntity<MealPlanDetailsDTO> getLatestMealPlan(@PathVariable Long userId) {
+        MealPlanDetailsDTO plan = mealPlanService.getLatestPlanForUser(userId);
+        return ResponseEntity.ok(plan);
     }
     @GetMapping
     public List<MealPlanSummaryDTO> getUserMealPlans(@PathVariable Long userId) {

@@ -5,6 +5,7 @@ import com.deyan.mealplanner.dto.MealPlanDetailsDTO;
 import com.deyan.mealplanner.dto.MealPlanSummaryDTO;
 import com.deyan.mealplanner.dto.RecipeDetailsDTO;
 import com.deyan.mealplanner.service.interfaces.RecipeAPIAdapter;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
 import org.springframework.stereotype.Service;
@@ -232,7 +233,6 @@ public class MealPlanService {
                 .where(MEAL_PLAN.ID.eq(planId).and(MEAL_PLAN.USER_ID.eq(userId)))
                 .fetchOne();
         if (plan == null) throw new IllegalArgumentException("Plan not found");
-
         var mealRecords = db.select(
                         MEAL_PLAN_RECIPE.DAY_INDEX,
                         MEAL_PLAN_RECIPE.MEAL_SLOT
@@ -242,6 +242,11 @@ public class MealPlanService {
                 .join(RECIPE).on(RECIPE.ID.eq(MEAL_PLAN_RECIPE.RECIPE_ID))
                 .where(MEAL_PLAN_RECIPE.MEAL_PLAN_ID.eq(planId))
                 .fetch();
+        int days = mealRecords.stream()
+                .mapToInt(r -> r.get(MEAL_PLAN_RECIPE.DAY_INDEX))
+                .max()
+                .orElse(0)
+                + 1;
 
         var meals = mealRecords.stream().map(r -> {
             var recipeId = r.get(RECIPE.ID);
@@ -278,22 +283,6 @@ public class MealPlanService {
                     recipe
             );
         }).toList();
-
-//        var shoppingList = db.select(
-//                        INGREDIENT.ID,
-//                        INGREDIENT.NAME,
-//                        SHOPPING_LIST_ITEM.QUANTITY
-//                )
-//                .from(SHOPPING_LIST)
-//                .join(SHOPPING_LIST_ITEM).on(SHOPPING_LIST.ID.eq(SHOPPING_LIST_ITEM.SHOPPING_LIST_ID))
-//                .join(INGREDIENT).on(INGREDIENT.ID.eq(SHOPPING_LIST_ITEM.INGREDIENT_ID))
-//                .where(SHOPPING_LIST.MEAL_PLAN_ID.eq(planId))
-//                .fetch()
-//                .map(r -> new MealPlanDetailsDTO.ShoppingListItemDTO(
-//                        r.get(INGREDIENT.ID),
-//                        r.get(INGREDIENT.NAME),
-//                        r.get(SHOPPING_LIST_ITEM.QUANTITY)
-//                ));
         var rawItems = db.select(
                         INGREDIENT.ID,
                         INGREDIENT.NAME,
@@ -347,7 +336,7 @@ public class MealPlanService {
                 BigDecimal.valueOf(plan.getTargetKcal()), BigDecimal.valueOf(plan.getTargetProteinG()), BigDecimal.valueOf(plan.getTargetCarbG()), BigDecimal.valueOf(plan.getTargetFatG()),
                 BigDecimal.valueOf(plan.getActualKcal()), BigDecimal.valueOf(plan.getActualProteinG()), BigDecimal.valueOf(plan.getActualCarbG()), BigDecimal.valueOf(plan.getActualFatG()),
                 meals,
-                shoppingList
+                shoppingList,days
         );
     }
     public List<MealPlanSummaryDTO> getUserPlans(long userId) {
@@ -393,6 +382,28 @@ public class MealPlanService {
         db.deleteFrom(MEAL_PLAN)
                 .where(MEAL_PLAN.ID.eq(planId))
                 .execute();
+    }
+    public MealPlanDetailsDTO getLatestPlanForUser(Long userId){
+        Long latestPlanId = db.select(MEAL_PLAN.ID)
+                .from(MEAL_PLAN)
+                .where(MEAL_PLAN.USER_ID.eq(userId))
+                .orderBy(MEAL_PLAN.CREATED_AT.desc())
+                .limit(1)
+                .fetchOneInto(Long.class);
+
+        if (latestPlanId == null) {
+            throw new IllegalArgumentException("No meal plans found for user " + userId);
+        }
+        return getPlanById(userId, latestPlanId);
+    }
+    public MealPlanDetailsDTO regenerate(Long userId, Long planId){
+        MealPlanDetailsDTO plan = getPlanById(userId, planId);
+        long newPlanId = createPlan(userId,plan.targetKcal().intValue()
+                ,plan.targetProteinG().intValue()
+                ,plan.targetCarbG().intValue()
+                ,plan.targetFatG().intValue()
+                , plan.days());
+        return getPlanById(userId, newPlanId);
     }
     private BigDecimal parse(String input) {
         try {
