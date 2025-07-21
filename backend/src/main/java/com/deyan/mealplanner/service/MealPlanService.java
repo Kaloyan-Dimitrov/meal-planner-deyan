@@ -5,6 +5,7 @@ import com.deyan.mealplanner.dto.MealPlanDetailsDTO;
 import com.deyan.mealplanner.dto.MealPlanSummaryDTO;
 import com.deyan.mealplanner.dto.RecipeDetailsDTO;
 import com.deyan.mealplanner.service.interfaces.RecipeAPIAdapter;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
 import org.springframework.stereotype.Service;
@@ -394,6 +395,20 @@ public class MealPlanService {
                 .where(MEAL_PLAN.ID.eq(planId))
                 .execute();
     }
+    public MealPlanDetailsDTO getLatestPlanForUser(Long userId){
+        Long latestPlanId = db.select(MEAL_PLAN.ID)
+                .from(MEAL_PLAN)
+                .where(MEAL_PLAN.USER_ID.eq(userId))
+                .orderBy(MEAL_PLAN.CREATED_AT.desc())
+                .limit(1)
+                .fetchOneInto(Long.class);
+
+        if (latestPlanId == null) {
+            throw new IllegalArgumentException("No meal plans found for user " + userId);
+        }
+        return getPlanById(userId, latestPlanId);
+    }
+
     private BigDecimal parse(String input) {
         try {
             return new BigDecimal(input.replaceAll("[^\\d.]", ""));
