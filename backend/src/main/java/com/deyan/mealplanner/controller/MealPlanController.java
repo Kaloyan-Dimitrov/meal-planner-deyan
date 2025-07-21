@@ -25,6 +25,10 @@ public class MealPlanController {
                 r.targetKcal(), r.proteinG(), r.carbG(), r.fatG(),r.days()!=null ? r.days() : null);
         return new CreatedDTO(id);
     }
+    @PostMapping("/{planId}/regenerate")
+    public MealPlanDetailsDTO regenerateMealPlan(@PathVariable Long userId, @PathVariable Long planId) {
+        return mealPlanService.regenerate(userId, planId);
+    }
     @GetMapping("/{planId}")
     public MealPlanDetailsDTO getMealPlanById(@PathVariable Long userId, @PathVariable Long planId) {
         return mealPlanService.getPlanById(userId, planId);
