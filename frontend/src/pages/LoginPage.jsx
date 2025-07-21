@@ -100,7 +100,7 @@ const handleLogin = async (e) => {
 
           <button
             type="submit"
-            className="w-full bg-paleblue text-white py-2 rounded hover:bg-blue-700 transition"
+            className="w-full bg-green-700 text-white py-2 rounded hover:bg-blue-700 transition"
           >
             Login
           </button>
