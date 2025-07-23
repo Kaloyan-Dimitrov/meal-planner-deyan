@@ -12,7 +12,23 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
+/**
+ * Intercepts every request once, extracts the JWT from the
+ * “Authorization: Bearer …” header, validates it, and – if valid –
+ * populates the SecurityContext with the {@link UserDetails} returned by
+ * {@link MyUserDetailsService}.
+ *
+ * <p>The token may contain:
+ * <ul>
+ *   <li><b>sub</b> (email) – existing behaviour</li>
+ *   <li><b>userId</b> (numeric) – optional extra claim you add when
+ *       signing the token</li>
+ * </ul>
+ * Only <em>sub</em> is needed to authenticate; userId is handy later if
+ * you want to expose it via <code>@AuthenticationPrincipal</code>.</p>
+ */
 public class JwtAuthFilter extends OncePerRequestFilter {
+
     private final JwtUtil jwtUtil;
     private final MyUserDetailsService userDetailsService;
 
@@ -22,31 +38,37 @@ public class JwtAuthFilter extends OncePerRequestFilter {
     }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+    protected void doFilterInternal(HttpServletRequest request,
+                                    HttpServletResponse response,
+                                    FilterChain filterChain)
             throws ServletException, IOException {
-
         final String authHeader = request.getHeader("Authorization");
-        final String token;
-        final String email;
-
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             filterChain.doFilter(request, response);
             return;
         }
+        final String token = authHeader.substring(7);      // strip "Bearer "
 
-        token = authHeader.substring(7);
-        email = jwtUtil.extractEmail(token);
+        final String email = jwtUtil.extractEmail(token);  // sub = email
 
         if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+
             UserDetails userDetails = userDetailsService.loadUserByUsername(email);
-            if (jwtUtil.isTokenValid(token)) {
-                UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
-                        userDetails, null, userDetails.getAuthorities()
-                );
-                authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-                SecurityContextHolder.getContext().setAuthentication(authToken);
+
+            // validate signature, expiry, and subject matches
+            if (jwtUtil.isTokenValid(token, userDetails)) {
+
+                UsernamePasswordAuthenticationToken auth =
+                        new UsernamePasswordAuthenticationToken(
+                                userDetails,                    // principal
+                                null,                           // credentials
+                                userDetails.getAuthorities()    // roles
+                        );
+                auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                SecurityContextHolder.getContext().setAuthentication(auth);
             }
         }
+
         filterChain.doFilter(request, response);
     }
 }
