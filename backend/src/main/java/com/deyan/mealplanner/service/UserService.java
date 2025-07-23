@@ -113,7 +113,25 @@ public class UserService {
                         record.get(field(name("latest_progress", "date"), LocalDateTime.class))
                 ));
     }
+    public UserDTO findByEmail(String email){
+        var userRecord = dsl.selectFrom(USERS)
+                .where(USERS.EMAIL.eq(email))
+                .fetchOne();
+        var latestProgress = dsl.selectFrom(USER_PROGRESS)
+                .where(USER_PROGRESS.USER_ID.eq(userRecord.getId()))
+                .orderBy(USER_PROGRESS.DATE.desc())
+                .limit(1)
+                .fetchOne();
 
+        return new UserDTO(
+                userRecord.getId(),
+                userRecord.getName(),
+                userRecord.getEmail(),
+                latestProgress != null ? latestProgress.getWeight() : null,
+                userRecord.getDayStreak(),
+                latestProgress != null ? latestProgress.getDate() : null
+        );
+    }
     public UserDTO createUser(CreateUserRequest request) {
         boolean emailExists = dsl.fetchExists(dsl.selectFrom(USERS).where(USERS.EMAIL.eq(request.email())));
                 if(emailExists){
