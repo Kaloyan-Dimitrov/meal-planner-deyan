@@ -3,6 +3,7 @@ package com.deyan.mealplanner.controller;
 
 import com.deyan.mealplanner.dto.AuthRequest;
 import com.deyan.mealplanner.dto.CreateUserRequest;
+import com.deyan.mealplanner.dto.UserDTO;
 import com.deyan.mealplanner.service.JwtUtil;
 import com.deyan.mealplanner.service.UserService;
 import org.springframework.http.ResponseEntity;
@@ -19,34 +20,37 @@ public class AuthController {
     private final AuthenticationManager authManager;
     private final JwtUtil jwtUtil;
     private final UserService userService;
-    private final PasswordEncoder encoder;
 
     public AuthController(AuthenticationManager authManager,
                           JwtUtil jwtUtil,
-                          UserService userService,
-                          PasswordEncoder encoder) {
+                          UserService userService) {
         this.authManager   = authManager;
         this.jwtUtil       = jwtUtil;
         this.userService   = userService;
-        this.encoder       = encoder;
+
     }
 
     @PostMapping("/login")
-    public ResponseEntity<Map<String,String>> login(@RequestBody AuthRequest request) {
+    public ResponseEntity<Map<String,String>> login(@RequestBody AuthRequest req) {
+
         authManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.email(), request.password())
+                new UsernamePasswordAuthenticationToken(req.email(), req.password())
         );
-        return ResponseEntity.ok(Map.of("token", jwtUtil.generateToken(request.email())));
+
+        // service returns DTO (not entity)
+        UserDTO user = userService.findByEmail(req.email());
+
+        String token = jwtUtil.generateToken(user);   // now includes userId claim
+        return ResponseEntity.ok(Map.of("token", token));
     }
 
     @PostMapping("/register")
-    public ResponseEntity<String> register(@RequestBody CreateUserRequest req) {
+    public ResponseEntity<Map<String,String>> register(@RequestBody CreateUserRequest req) {
 
-        // 1. persist user
-        userService.createUser(req);
+        // persist + return DTO
+        UserDTO user = userService.createUser(req);
 
-        // 3. auto-login
-        String token = jwtUtil.generateToken(req.email());
-        return ResponseEntity.ok(token);
+        String token = jwtUtil.generateToken(user);   // auto-login
+        return ResponseEntity.ok(Map.of("token", token));
     }
 }
