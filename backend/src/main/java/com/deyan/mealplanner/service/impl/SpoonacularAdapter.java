@@ -87,7 +87,11 @@ public class SpoonacularAdapter implements RecipeAPIAdapter {
             int carb = 0;
             int fat = 0;
             Long index = 0L;
+            int dayCounter=0;
             for (WeeklyMealPlanDTO.Day d : raw.week().values()) {
+                if (dayCounter >= days) break;   // ← stop when we've hit the requested days
+                dayCounter++;
+
                 kcal += d.nutrients().calories().intValue();
                 carb += d.nutrients().carbohydrates().intValue();
                 fat += d.nutrients().fat().intValue();
