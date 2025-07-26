@@ -87,7 +87,11 @@ public class SpoonacularAdapter implements RecipeAPIAdapter {
             int carb = 0;
             int fat = 0;
             Long index = 0L;
+            int dayCounter=0;
             for (WeeklyMealPlanDTO.Day d : raw.week().values()) {
+                if (dayCounter == days) break;   // ← stop when we've hit the requested days
+                dayCounter++;
+
                 kcal += d.nutrients().calories().intValue();
                 carb += d.nutrients().carbohydrates().intValue();
                 fat += d.nutrients().fat().intValue();
@@ -99,14 +103,16 @@ public class SpoonacularAdapter implements RecipeAPIAdapter {
                             m.readyInMinutes(), m.servings(), m.sourceUrl()));
                 }
             }
-                MealPlanDTO dto = new MealPlanDTO(
-                        meals,
-                        new MealPlanDTO.Nutrients(BigDecimal.valueOf(kcal), (BigDecimal.valueOf(protein))
-                                , (BigDecimal.valueOf(fat)), (BigDecimal.valueOf(carb))));
+            int perDayKcal    = kcal    / dayCounter;
+            int perDayProtein = protein / dayCounter;
+            int perDayCarb    = carb    / dayCounter;
+            int perDayFat     = fat     / dayCounter;
 
-                log.info("Spoonacular WEEK → {} meals, total {} kcal (≈{} / day)",
-                        meals.size(), (int) kcal, (int) (kcal / 7));
-                return dto;
+
+            return new MealPlanDTO(
+                        meals,
+                        new MealPlanDTO.Nutrients(BigDecimal.valueOf(perDayKcal), (BigDecimal.valueOf(perDayProtein))
+                                , (BigDecimal.valueOf(perDayFat)), (BigDecimal.valueOf(perDayCarb))));
 
         } catch (WebClientResponseException e) {
             // helpful diagnostics in the log

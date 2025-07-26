@@ -57,6 +57,9 @@ public class MealPlanService {
                            Integer targetKcal,
                            Integer p, Integer c, Integer f,
                            Integer days) {
+        if(days != 1 && days!=7){
+            throw new IllegalArgumentException("Days must be 1 or 7");
+        }
         log.debug("SERVICE     ⇢  targetKcal = {}", targetKcal);
         MealPlanDTO apiPlan = external.generateMealPlan(targetKcal, days);
         if (apiPlan.meals() == null || apiPlan.meals().isEmpty()) {
