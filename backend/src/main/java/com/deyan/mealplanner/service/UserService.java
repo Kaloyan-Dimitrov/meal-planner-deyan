@@ -238,7 +238,9 @@ public class UserService {
                         .where(USER_PROGRESS.USER_ID.eq(userId))
                         .and(USER_PROGRESS.DATE.cast(LocalDate.class).eq(today))
         );
-
+        if(alreadyLoggedToday){
+            throw new IllegalArgumentException("You already logged your weight today.");
+        }
         // Insert new weight entry
         dsl.insertInto(USER_PROGRESS)
                 .set(USER_PROGRESS.USER_ID, userId)
