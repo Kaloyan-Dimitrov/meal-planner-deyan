@@ -25,7 +25,7 @@ export default function DashboardPage() {
   }
 
   /* ---------------- Static options ---------------- */
-  const planLengths = [1, 2, 3, 4, 5, 6, 7];
+  const planLengths = [1,7];
   const slots = ['Breakfast', 'Lunch', 'Dinner'];
   const slotLabel = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -83,10 +83,10 @@ export default function DashboardPage() {
 
     /* macro summary */
     setMacros({
-      calories: data.actualKcal   ?? data.targetKcal,
-      protein : data.actualProteinG ?? data.targetProteinG,
-      carbs   : data.actualCarbG  ?? data.targetCarbG,
-      fat     : data.actualFatG   ?? data.targetFatG,
+      calories: data.actualKcal ?? data.targetKcal,
+      protein: data.actualProteinG ?? data.targetProteinG,
+      carbs: data.actualCarbG ?? data.targetCarbG,
+      fat: data.actualFatG ?? data.targetFatG,
     });
 
     /* group meals by day & slot – backend day is 0‑based */
@@ -160,17 +160,17 @@ export default function DashboardPage() {
         <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <h2 className="text-xl font-semibold mb-4">Macro Targets</h2>
-            {['targetKcal','proteinG','carbG','fatG'].map(k => (
+            {['targetKcal', 'proteinG', 'carbG', 'fatG'].map(k => (
               <div key={k} className="flex items-center mb-2">
-                <label className="w-24 capitalize">{k.replace('G','')}:</label>
+                <label className="w-24 capitalize">{k.replace('G', '')}:</label>
                 <input type="number" value={params[k]} onChange={e => setParams(prev => ({ ...prev, [k]: Number(e.target.value) }))} className="border rounded px-2 py-1 flex-grow" />
-                <span className="ml-2">{k==='targetKcal' ? 'kcal' : 'g'}</span>
+                <span className="ml-2">{k === 'targetKcal' ? 'kcal' : 'g'}</span>
               </div>
             ))}
             <div className="flex items-center mt-4">
               <label className="mr-2">Plan Duration:</label>
               <select value={params.days} onChange={e => setParams(prev => ({ ...prev, days: Number(e.target.value) }))} className="border rounded px-2 py-1">
-                {planLengths.map(d => <option key={d} value={d}>{d} day{d>1?'s':''}</option>)}
+                {planLengths.map(d => <option key={d} value={d}>{d} day{d > 1 ? 's' : ''}</option>)}
               </select>
             </div>
             <div className="mt-4 flex space-x-4">
@@ -180,16 +180,22 @@ export default function DashboardPage() {
           </div>
 
           {/* Macro summary */}
-          <div>
-            <h2 className="text-xl font-semibold mb-4">Macro Summary</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {['calories','protein','carbs','fat'].map(key => (
-                <div key={key} className="bg-white rounded-lg shadow p-4 flex flex-col items-center">
-                  <span className="text-lg font-medium capitalize">{key}</span>
-                  <span className="text-2xl font-bold mt-2">{macros[key] ?? '--'}</span>
+          <div className="grid grid-cols-2 grid-rows-2 gap-4">
+            {['calories', 'protein', 'carbs', 'fat'].map(key => {
+              const over = macros[key] - params[
+                key === 'calories' ? 'targetKcal' : key === 'carbs' ? 'carbG' : key === 'protein' ? 'proteinG' : 'fatG'
+              ];
+              return (
+                <div key={key}
+                  className={`p-4 rounded-lg shadow flex flex-col justify-items-center
+                      ${over < -5 ? 'bg-red-100 text-red-700'
+                      : over > 5 ? 'bg-green-100 text-green-700'
+                        : 'bg-white'}`}>
+                  <span className="text-sm capitalize">{key}</span>
+                  <span className="text-2xl font-bold">{macros[key] ?? '--'}</span>
                 </div>
-              ))}
-            </div>
+              );
+            })}
           </div>
         </section>
 
@@ -205,10 +211,10 @@ export default function DashboardPage() {
                 </tr>
               </thead>
               <tbody>
-                {mealPlan.length===0 ? (
-                  <tr><td className="px-4 py-2" colSpan={slots.length+1}>No data</td></tr>
+                {mealPlan.length === 0 ? (
+                  <tr><td className="px-4 py-2" colSpan={slots.length + 1}>No data</td></tr>
                 ) : (
-                  mealPlan.map((d,i) => (
+                  mealPlan.map((d, i) => (
                     <tr key={i} className="border-t">
                       <td className="px-4 py-2 font-medium sticky left-0 bg-white">{d.day}</td>
                       {slots.map(s => <td key={s} className="px-4 py-2">{d.meals[s] ?? '--'}</td>)}
