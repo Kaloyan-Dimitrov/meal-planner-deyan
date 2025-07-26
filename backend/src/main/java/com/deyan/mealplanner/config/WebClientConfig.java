@@ -8,6 +8,7 @@ import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientResponseException;
 
 import java.util.Map;
 
@@ -29,13 +30,23 @@ public class WebClientConfig {
     @Bean
     CommandLineRunner pingSpoonacular(WebClient spoonacularWebClient) {
         return args -> {
-            String json = spoonacularWebClient.get()
-                    .uri("/recipes/random?number=1&apiKey={apiKey}") // the {apiKey} placeholder is resolved
-                    .retrieve()
-                    .bodyToMono(String.class)
-                    .block();
+            try {
+                String json = spoonacularWebClient.get()
+                        .uri("/recipes/random?number=1&apiKey={apiKey}")   // {apiKey} placeholder still resolved
+                        .retrieve()
+                        .bodyToMono(String.class)
+                        .block();
 
-            System.out.println("✅ Spoonacular responded, JSON length = " + json.length());
+                System.out.println("✅ Spoonacular responded, JSON length = " + json.length());
+            } catch (WebClientResponseException e) {
+                // quota exhausted or bad key → 4xx/5xx
+                System.out.println("⚠️  Spoonacular ping failed (" +
+                        e.getStatusCode().value() + " " + e.getStatusText() +
+                        ") – continuing startup");
+            } catch (Exception e) {
+                // DNS/offline/etc.
+                System.out.println("⚠️  Spoonacular unreachable – continuing startup");
+            }
         };
     }
 
