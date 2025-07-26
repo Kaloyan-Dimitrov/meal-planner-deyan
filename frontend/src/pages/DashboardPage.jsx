@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
+import RecipeModal from '../components/RecipeModal'
 
 // DashboardPage.jsx – parses backend response shape (meals array, actual macros)
 export default function DashboardPage() {
@@ -20,12 +21,11 @@ export default function DashboardPage() {
     }
   }
   if (!userId) {
-    navigate('/login');
-    return null;
+    return <Navigate to="/login" replace />;
   }
 
   /* ---------------- Static options ---------------- */
-  const planLengths = [1,7];
+  const planLengths = [1, 7];
   const slots = ['Breakfast', 'Lunch', 'Dinner'];
   const slotLabel = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -37,6 +37,8 @@ export default function DashboardPage() {
   const [params, setParams] = useState({ targetKcal: 2000, proteinG: 150, carbG: 250, fatG: 70, days: 7 });
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [selectedRecipe, setSelectedRecipe] = useState(null);
+  const [lockedTargets, setLockedTargets] = useState(null);
 
   /* ---------------- Helper: fetch JSON with auth ---------------- */
   const fetchJson = async (url, opts = {}) => {
@@ -65,6 +67,10 @@ export default function DashboardPage() {
     }
   };
 
+  const openRecipeModal = async (recipeId) => {
+    const details = await fetchJson(`/api/recipes/${recipeId}`);
+    if (details) setSelectedRecipe(details);
+  };
   /* ---------------- Load plans list ---------------- */
   useEffect(() => {
     (async () => {
@@ -89,23 +95,36 @@ export default function DashboardPage() {
       fat: data.actualFatG ?? data.targetFatG,
     });
 
+    setLockedTargets({
+      targetKcal: data.targetKcal,
+      proteinG: data.targetProteinG,
+      carbG: data.targetCarbG,
+      fatG: data.targetFatG,
+    });
+
     /* group meals by day & slot – backend day is 0‑based */
     const grouped = {};
 
     (data.meals ?? []).forEach(({ day, mealSlot, recipe }) => {
-      // "Day 0" → 0  ,  0 → 0
       const rawIndex = typeof day === 'number'
         ? day
         : parseInt(day.match(/\d+/)?.[0] ?? '0', 10);
 
       if (!grouped[rawIndex]) grouped[rawIndex] = { day: rawIndex + 1, meals: {} }; // display as 1‑based
 
-      grouped[rawIndex].meals[slotLabel(mealSlot)] = recipe.title;
+      grouped[rawIndex].meals[slotLabel(mealSlot)] = {
+        id: recipe.id,
+        title: recipe.title,
+        readyInMinutes: recipe.prepTime,
+        servings: recipe.servings,
+        sourceUrl: recipe.sourceUrl,
+      };
     });
 
     setMealPlan(
       Object.values(grouped).sort((a, b) => a.day - b.day)
     );
+    console.log('mealPlan →', grouped);
   };
 
   /* ---------------- Load selected plan details ---------------- */
@@ -167,6 +186,9 @@ export default function DashboardPage() {
                 <span className="ml-2">{k === 'targetKcal' ? 'kcal' : 'g'}</span>
               </div>
             ))}
+            <p className="text-xs text-gray-500 mt-2">
+              ⚠️&nbsp;Macros targets are for feedback only — SpoonacularAPI may return meal plans that don’t match them exactly.
+            </p>
             <div className="flex items-center mt-4">
               <label className="mr-2">Plan Duration:</label>
               <select value={params.days} onChange={e => setParams(prev => ({ ...prev, days: Number(e.target.value) }))} className="border rounded px-2 py-1">
@@ -182,9 +204,8 @@ export default function DashboardPage() {
           {/* Macro summary */}
           <div className="grid grid-cols-2 grid-rows-2 gap-4">
             {['calories', 'protein', 'carbs', 'fat'].map(key => {
-              const over = macros[key] - params[
-                key === 'calories' ? 'targetKcal' : key === 'carbs' ? 'carbG' : key === 'protein' ? 'proteinG' : 'fatG'
-              ];
+              const targetValue = lockedTargets?.[key === 'calories' ? 'targetKcal' : key === 'protein' ? 'proteinG' : key === 'carbs' ? 'carbG' : 'fatG'];
+              const over = macros[key] - targetValue;
               return (
                 <div key={key}
                   className={`p-4 rounded-lg shadow flex flex-col justify-items-center
@@ -217,7 +238,23 @@ export default function DashboardPage() {
                   mealPlan.map((d, i) => (
                     <tr key={i} className="border-t">
                       <td className="px-4 py-2 font-medium sticky left-0 bg-white">{d.day}</td>
-                      {slots.map(s => <td key={s} className="px-4 py-2">{d.meals[s] ?? '--'}</td>)}
+                      {slots.map((s) => {
+                        const meal = d.meals[s];
+                        return (
+                          <td key={s} className="px-4 py-2">
+                            {meal ? (
+                              <button
+                                className="text-blue-600 underline"
+                                onClick={() => openRecipeModal(meal.id)}
+                              >
+                                {meal.title}
+                              </button>
+                            ) : (
+                              '--'
+                            )}
+                          </td>
+                        );
+                      })}
                     </tr>
                   ))
                 )}
@@ -226,6 +263,12 @@ export default function DashboardPage() {
           </div>
         </section>
       </main>
+      {selectedRecipe && (
+        <RecipeModal
+          recipe={selectedRecipe}
+          onClose={() => setSelectedRecipe(null)}
+        />
+      )}
     </div>
   );
 }
