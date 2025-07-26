@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
 import RecipeModal from '../components/RecipeModal'
 import WeightModal from '../components/WeightModal';
+import AchievementsModal from '../components/AchievementsModal';
+import { toast } from 'react-toastify';
 
 // DashboardPage.jsx – parses backend response shape (meals array, actual macros)
 export default function DashboardPage() {
@@ -41,6 +43,9 @@ export default function DashboardPage() {
   const [selectedRecipe, setSelectedRecipe] = useState(null);
   const [lockedTargets, setLockedTargets] = useState(null);
   const [showWeightModal, setShowWeightModal] = useState(false);
+  const [achievements, setAchievements] = useState([]);
+  const [showAchModal, setShowAchModal] = useState(false);
+
 
   /* ---------------- Helper: fetch JSON with auth ---------------- */
   const fetchJson = async (url, opts = {}) => {
@@ -73,6 +78,17 @@ export default function DashboardPage() {
     const details = await fetchJson(`/api/recipes/${recipeId}`);
     if (details) setSelectedRecipe(details);
   };
+
+  const loadAchievements = async () => {
+    const data = await fetchJson(`/api/users/${userId}/achievements`);
+    if (Array.isArray(data)) setAchievements(data);
+  };
+  const toastNewUnlocks = (ids = []) => {
+    ids.forEach((id) => {
+      const a = achievements.find((x) => x.id === id);
+      if (a) toast.success(`🏅 Achievement unlocked: ${a.name}`);
+    });
+  };
   /* ---------------- Load plans list ---------------- */
   useEffect(() => {
     (async () => {
@@ -85,6 +101,7 @@ export default function DashboardPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => { loadAchievements(); /* eslint-disable-next-line */ }, []);
   /* ---------------- Parse plan details ---------------- */
   const parsePlanDetails = (data) => {
     if (!data) return;
@@ -103,6 +120,14 @@ export default function DashboardPage() {
       carbG: data.targetCarbG,
       fatG: data.targetFatG,
     });
+    setParams((prev) => ({
+      ...prev,
+      targetKcal: data.targetKcal ?? prev.targetKcal,
+      proteinG: data.targetProteinG ?? prev.proteinG,
+      carbG: data.targetCarbG ?? prev.carbG,
+      fatG: data.targetFatG ?? prev.fatG,
+      days: (data.meals ? new Set(data.meals.map(m => m.day)).size : prev.days) || prev.days
+    }));
 
     /* group meals by day & slot – backend day is 0‑based */
     const grouped = {};
@@ -159,16 +184,27 @@ export default function DashboardPage() {
       {/* Nav */}
       <header className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Dashboard</h1>
+
         <div className="flex items-center space-x-3">
           <button
+            onClick={() => setShowAchModal(true)}
+            className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
+          >
+            Achievements
+          </button>
+
+          <button
             onClick={() => setShowWeightModal(true)}
-            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+            className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
           >
             Log Weight
           </button>
 
           <button
-            onClick={() => { localStorage.removeItem('jwt'); navigate('/login'); }}
+            onClick={() => {
+              localStorage.removeItem('jwt');
+              navigate('/login');
+            }}
             className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
           >
             Logout
@@ -285,13 +321,24 @@ export default function DashboardPage() {
         />
       )}
       {showWeightModal && (
-      <WeightModal
-        open={showWeightModal}
-        onClose={() => setShowWeightModal(false)}
-        userId={userId}
-        authHeader={authHeader}
-        onSuccess={() => {/* e.g. refresh streak UI later */ }}
-      />)}
+        <WeightModal
+          open={showWeightModal}
+          onClose={() => setShowWeightModal(false)}
+          userId={userId}
+          authHeader={authHeader}
+          onSuccess={(payload) => {
+            if (payload.newAchievements?.length) {
+              toastNewUnlocks(payload.newAchievements);
+              loadAchievements();
+            }
+          }}
+        />)}
+      <AchievementsModal
+        open={showAchModal}
+        onClose={() => setShowAchModal(false)}
+        achievements={achievements}
+      />
+
     </div>
   );
 }
