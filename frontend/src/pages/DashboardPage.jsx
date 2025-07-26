@@ -21,8 +21,7 @@ export default function DashboardPage() {
     }
   }
   if (!userId) {
-    navigate('/login');
-    return null;
+    return <Navigate to="/login" replace />;
   }
 
   /* ---------------- Static options ---------------- */
@@ -108,7 +107,7 @@ export default function DashboardPage() {
       grouped[rawIndex].meals[slotLabel(mealSlot)] = {
         id: recipe.id,
         title: recipe.title,
-        readyInMinutes: recipe.readyInMinutes,
+        readyInMinutes: recipe.prepTime,
         servings: recipe.servings,
         sourceUrl: recipe.sourceUrl,
       };
@@ -179,6 +178,9 @@ export default function DashboardPage() {
                 <span className="ml-2">{k === 'targetKcal' ? 'kcal' : 'g'}</span>
               </div>
             ))}
+            <p className="text-xs text-gray-500 mt-2">
+              ⚠️&nbsp;Macros targets are for feedback only — SpoonacularAPI may return meal plans that don’t match them exactly.
+            </p>
             <div className="flex items-center mt-4">
               <label className="mr-2">Plan Duration:</label>
               <select value={params.days} onChange={e => setParams(prev => ({ ...prev, days: Number(e.target.value) }))} className="border rounded px-2 py-1">
