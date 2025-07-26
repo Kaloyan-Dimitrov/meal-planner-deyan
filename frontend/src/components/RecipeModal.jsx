@@ -26,14 +26,14 @@ function RecipeModal({ recipe, onClose }) {
 
         <h3 className="font-semibold mb-2">Ingredients</h3>
         <ul className="list-disc list-inside space-y-1 mb-4">
-          {recipe.ingredients?.map((ing, i) => (
+          {recipe.extendedIngredients?.map((ing, i) => (
             <li key={i}>
               {ing.amount} {ing.unit} {ing.name}
             </li>
           ))}
         </ul>
 
-        {recipe.sourceUrl && (
+        {recipe.sourceUrl ? (
           <a
             href={recipe.sourceUrl}
             target="_blank"
@@ -42,7 +42,8 @@ function RecipeModal({ recipe, onClose }) {
           >
             Full instructions ↗
           </a>
-        )}
+        ) : 
+        <span className="text-gray-500 italic">No instructions available</span>}
       </div>
     </div>
   );
