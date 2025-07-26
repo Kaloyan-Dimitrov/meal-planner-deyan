@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
 import RecipeModal from '../components/RecipeModal'
+import WeightModal from '../components/WeightModal';
 
 // DashboardPage.jsx – parses backend response shape (meals array, actual macros)
 export default function DashboardPage() {
@@ -39,6 +40,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(false);
   const [selectedRecipe, setSelectedRecipe] = useState(null);
   const [lockedTargets, setLockedTargets] = useState(null);
+  const [showWeightModal, setShowWeightModal] = useState(false);
 
   /* ---------------- Helper: fetch JSON with auth ---------------- */
   const fetchJson = async (url, opts = {}) => {
@@ -134,7 +136,6 @@ export default function DashboardPage() {
       const details = await fetchJson(`/api/users/${userId}/meal-plans/${selectedPlanId}`);
       parsePlanDetails(details);
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPlanId]);
 
   /* ---------------- Create & regenerate ---------------- */
@@ -158,7 +159,21 @@ export default function DashboardPage() {
       {/* Nav */}
       <header className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold">Dashboard</h1>
-        <button onClick={() => { localStorage.removeItem('jwt'); navigate('/login'); }} className="bg-red-500 text-white px-4 py-2 rounded">Logout</button>
+        <div className="flex items-center space-x-3">
+          <button
+            onClick={() => setShowWeightModal(true)}
+            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+          >
+            Log Weight
+          </button>
+
+          <button
+            onClick={() => { localStorage.removeItem('jwt'); navigate('/login'); }}
+            className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
+          >
+            Logout
+          </button>
+        </div>
       </header>
 
       {error && <div className="bg-red-100 text-red-800 p-3 rounded mb-4">Error: {error}</div>}
@@ -269,6 +284,14 @@ export default function DashboardPage() {
           onClose={() => setSelectedRecipe(null)}
         />
       )}
+      {showWeightModal && (
+      <WeightModal
+        open={showWeightModal}
+        onClose={() => setShowWeightModal(false)}
+        userId={userId}
+        authHeader={authHeader}
+        onSuccess={() => {/* e.g. refresh streak UI later */ }}
+      />)}
     </div>
   );
 }
