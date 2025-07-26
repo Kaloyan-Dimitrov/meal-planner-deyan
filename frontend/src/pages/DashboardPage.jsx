@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
+import RecipeModal from '../components/RecipeModal'
 
 // DashboardPage.jsx – parses backend response shape (meals array, actual macros)
 export default function DashboardPage() {
@@ -25,7 +26,7 @@ export default function DashboardPage() {
   }
 
   /* ---------------- Static options ---------------- */
-  const planLengths = [1,7];
+  const planLengths = [1, 7];
   const slots = ['Breakfast', 'Lunch', 'Dinner'];
   const slotLabel = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -37,6 +38,7 @@ export default function DashboardPage() {
   const [params, setParams] = useState({ targetKcal: 2000, proteinG: 150, carbG: 250, fatG: 70, days: 7 });
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [selectedRecipe, setSelectedRecipe] = useState(null);
 
   /* ---------------- Helper: fetch JSON with auth ---------------- */
   const fetchJson = async (url, opts = {}) => {
@@ -65,6 +67,10 @@ export default function DashboardPage() {
     }
   };
 
+  const openRecipeModal = async (recipeId) => {
+    const details = await fetchJson(`/api/recipes/${recipeId}`);
+    if (details) setSelectedRecipe(details);
+  };
   /* ---------------- Load plans list ---------------- */
   useEffect(() => {
     (async () => {
@@ -93,19 +99,25 @@ export default function DashboardPage() {
     const grouped = {};
 
     (data.meals ?? []).forEach(({ day, mealSlot, recipe }) => {
-      // "Day 0" → 0  ,  0 → 0
       const rawIndex = typeof day === 'number'
         ? day
         : parseInt(day.match(/\d+/)?.[0] ?? '0', 10);
 
       if (!grouped[rawIndex]) grouped[rawIndex] = { day: rawIndex + 1, meals: {} }; // display as 1‑based
 
-      grouped[rawIndex].meals[slotLabel(mealSlot)] = recipe.title;
+      grouped[rawIndex].meals[slotLabel(mealSlot)] = {
+        id: recipe.id,
+        title: recipe.title,
+        readyInMinutes: recipe.readyInMinutes,
+        servings: recipe.servings,
+        sourceUrl: recipe.sourceUrl,
+      };
     });
 
     setMealPlan(
       Object.values(grouped).sort((a, b) => a.day - b.day)
     );
+    console.log('mealPlan →', grouped);
   };
 
   /* ---------------- Load selected plan details ---------------- */
@@ -217,7 +229,23 @@ export default function DashboardPage() {
                   mealPlan.map((d, i) => (
                     <tr key={i} className="border-t">
                       <td className="px-4 py-2 font-medium sticky left-0 bg-white">{d.day}</td>
-                      {slots.map(s => <td key={s} className="px-4 py-2">{d.meals[s] ?? '--'}</td>)}
+                      {slots.map((s) => {
+                        const meal = d.meals[s];
+                        return (
+                          <td key={s} className="px-4 py-2">
+                            {meal ? (
+                              <button
+                                className="text-blue-600 underline"
+                                onClick={() => openRecipeModal(meal.id)}
+                              >
+                                {meal.title}
+                              </button>
+                            ) : (
+                              '--'
+                            )}
+                          </td>
+                        );
+                      })}
                     </tr>
                   ))
                 )}
@@ -226,6 +254,12 @@ export default function DashboardPage() {
           </div>
         </section>
       </main>
+      {selectedRecipe && (
+        <RecipeModal
+          recipe={selectedRecipe}
+          onClose={() => setSelectedRecipe(null)}
+        />
+      )}
     </div>
   );
 }
