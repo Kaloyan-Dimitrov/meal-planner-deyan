@@ -4,6 +4,7 @@ import com.deyan.mealplanner.dto.AchievementDTO;
 import com.deyan.mealplanner.dto.CreateUserRequest;
 import com.deyan.mealplanner.dto.UserDTO;
 import com.deyan.mealplanner.dto.WeightEntryDTO;
+import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
 
 import org.jooq.Table;
@@ -22,61 +23,22 @@ import static com.deyan.mealplanner.jooq.tables.Achievement.ACHIEVEMENT;
 import static com.deyan.mealplanner.jooq.tables.UserAchievement.USER_ACHIEVEMENT;
 import static com.deyan.mealplanner.jooq.tables.UserProgress.USER_PROGRESS;
 import static com.deyan.mealplanner.jooq.tables.Users.USERS;
-import static org.jooq.impl.DSL.field;
-import static org.jooq.impl.DSL.name;
+import static org.jooq.impl.DSL.*;
 
 @Service
+@Slf4j
 public class UserService {
     private final DSLContext dsl;
     private final PasswordEncoder passwordEncoder;
+    private final AchievementService achievementService;
 
-    public UserService(DSLContext dsl, PasswordEncoder passwordEncoder) {
+    public UserService(DSLContext dsl, PasswordEncoder passwordEncoder, AchievementService achievementService) {
         this.dsl = dsl;
         this.passwordEncoder = passwordEncoder;
+        this.achievementService = achievementService;
     }
 
     public List<UserDTO> getAllUsers() {
-//        Field<Integer> USER_ID = USER_PROGRESS.USER_ID;
-//        Field<BigDecimal> WEIGHT = USER_PROGRESS.WEIGHT;
-//        Field<LocalDate> DATE = USER_PROGRESS.DATE;
-//
-//// 2. Create the subquery and alias it properly
-//        var lp = DSL
-//                .select(USER_ID, WEIGHT, DATE)
-//                .from(USER_PROGRESS)
-//                .where(DSL.row(USER_ID, DATE).in(
-//                        DSL.select(USER_ID, DSL.max(DATE))
-//                                .from(USER_PROGRESS)
-//                                .groupBy(USER_ID)
-//                ))
-//                .asTable("latest_progress");
-//
-//// 3. Extract fields from alias `lp`
-//        Field<Integer> LP_USER_ID = lp.field(USER_ID);
-//        Field<BigDecimal> LP_WEIGHT = lp.field(WEIGHT);
-//        Field<LocalDate> LP_DATE = lp.field(DATE);
-//
-//// 4. Perform the join using the aliased fields
-//        return dsl.select(
-//                        USERS.ID,
-//                        USERS.NAME,
-//                        USERS.EMAIL,
-//                        USERS.DAY_STREAK,
-//                        LP_WEIGHT,
-//                        LP_DATE
-//                )
-//                .from(USERS)
-//                .leftJoin(lp)
-//                .on(USERS.ID.eq(LP_USER_ID))
-//                .fetch()
-//                .map(record -> new UserDTO(
-//                        record.get(USERS.ID).longValue(),
-//                        record.get(USERS.NAME),
-//                        record.get(USERS.EMAIL),
-//                        record.get(LP_WEIGHT),
-//                        record.get(USERS.DAY_STREAK),
-//                        record.get(LP_DATE)
-//                ));
         Table<?> latestProgress = dsl
                 .select(
                         USER_PROGRESS.USER_ID,
@@ -210,13 +172,6 @@ public class UserService {
             throw new RuntimeException("User not found or already deleted");
         }
     }
-    public List<AchievementDTO> getUserAchievements(Long userId){
-        return dsl.select(ACHIEVEMENT.ID, ACHIEVEMENT.NAME, ACHIEVEMENT.DESCRIPTION, USER_ACHIEVEMENT.COMPLETED_AT)
-                .from(USER_ACHIEVEMENT)
-                .join(ACHIEVEMENT).on(ACHIEVEMENT.ID.eq(USER_ACHIEVEMENT.ACHIEVEMENT_ID))
-                .where(USER_ACHIEVEMENT.USER_ID.eq(userId))
-                .fetchInto(AchievementDTO.class);
-    }
     public WeightEntryDTO addUserWeightEntry(Long userId, BigDecimal weight) {
         boolean exists = dsl.fetchExists(
                 dsl.selectOne()
@@ -250,77 +205,44 @@ public class UserService {
 
         int newStreak = 1; // default to 1 if this is the first/only entry
 
-        if (!alreadyLoggedToday) {
-            // Fetch latest entry date before today
-            LocalDate lastEntryDate = dsl
-                    .select(USER_PROGRESS.DATE)
-                    .from(USER_PROGRESS)
-                    .where(USER_PROGRESS.USER_ID.eq(userId))
-                    .and(USER_PROGRESS.DATE.cast(LocalDate.class).lt(today))
-                    .orderBy(USER_PROGRESS.DATE.desc())
-                    .limit(1)
-                    .fetchOptionalInto(LocalDateTime.class)
-                    .map(LocalDateTime::toLocalDate)
-                    .orElse(null);
+        // Fetch latest entry date before today
+        LocalDate lastEntryDate = dsl
+                .select(USER_PROGRESS.DATE)
+                .from(USER_PROGRESS)
+                .where(USER_PROGRESS.USER_ID.eq(userId))
+                .and(USER_PROGRESS.DATE.cast(LocalDate.class).lt(today))
+                .orderBy(USER_PROGRESS.DATE.desc())
+                .limit(1)
+                .fetchOptionalInto(LocalDateTime.class)
+                .map(LocalDateTime::toLocalDate)
+                .orElse(null);
 
-            Integer currentStreak = dsl
-                    .select(USERS.DAY_STREAK)
-                    .from(USERS)
-                    .where(USERS.ID.eq(userId))
-                    .fetchOneInto(Integer.class);
+        Integer currentStreak = dsl
+                .select(USERS.DAY_STREAK)
+                .from(USERS)
+                .where(USERS.ID.eq(userId))
+                .fetchOneInto(Integer.class);
 
-            if (currentStreak == null) currentStreak = 0;
+        if (currentStreak == null) currentStreak = 0;
 
-            if (lastEntryDate != null && lastEntryDate.equals(today.minusDays(1))) {
-                newStreak = currentStreak + 1;
-            }
-
-            // Update streak in USERS table
-            dsl.update(USERS)
-                    .set(USERS.DAY_STREAK, newStreak)
-                    .where(USERS.ID.eq(userId))
-                    .execute();
-        }
-        checkAchievements(userId,newStreak);
-
-        return new WeightEntryDTO(weight, now);
-    }
-
-    private void checkAchievements(Long userId, Integer newStreak) {
-        Set<Long> completed = dsl.select(USER_ACHIEVEMENT.ACHIEVEMENT_ID)
-                .from(USER_ACHIEVEMENT)
-                .where(USER_ACHIEVEMENT.USER_ID.eq(userId))
-                .fetchSet(USER_ACHIEVEMENT.ACHIEVEMENT_ID);
-
-        // === Streak-based achievements ===
-        if (newStreak >= 1 && !completed.contains(1L)) {
-            assignAchievement(userId, 1L); // 1-day streak
-        }
-        if (newStreak >= 7 && !completed.contains(2L)) {
-            assignAchievement(userId, 2L); // 7-day streak
-        }
-        if (newStreak >= 30 && !completed.contains(3L)) {
-            assignAchievement(userId, 3L); // 30-day streak
+        if (lastEntryDate != null && lastEntryDate.equals(today.minusDays(1))) {
+            newStreak = currentStreak + 1;
         }
 
-        // === Count-based achievements ===
-        int totalLogs = dsl.fetchCount(USER_PROGRESS, USER_PROGRESS.USER_ID.eq(userId));
-
-        if (totalLogs >= 10 && !completed.contains(4L)) {
-            assignAchievement(userId, 4L); // 10 logs
-        }
-        if (totalLogs >= 20 && !completed.contains(5L)) {
-            assignAchievement(userId, 5L); // 20 logs
-        }
-        if (totalLogs >= 30 && !completed.contains(6L)) {
-            assignAchievement(userId, 6L); // 30 logs
-        }
-    }
-    private void assignAchievement(Long userId, Long achievementId) {
-        dsl.insertInto(USER_ACHIEVEMENT)
-                .set(USER_ACHIEVEMENT.USER_ID, userId)
-                .set(USER_ACHIEVEMENT.ACHIEVEMENT_ID, achievementId)
-                .set(USER_ACHIEVEMENT.COMPLETED_AT, LocalDateTime.now())
+        // Update streak in USERS table
+        dsl.update(USERS)
+                .set(USERS.DAY_STREAK, newStreak)
+                .where(USERS.ID.eq(userId))
                 .execute();
+        log.info("🚩 addUserWeightEntry(): newStreak = {}", newStreak);
+        List<Long> unlocked = achievementService.updateAfterWeightLog(userId, newStreak);
+        log.info("🚩 addUserWeightEntry(): unlocked IDs = {}", unlocked);
+
+
+        return new WeightEntryDTO(weight, now,unlocked);
     }
+    public List<AchievementDTO> getUserAchievements(Long userId) {
+        return achievementService.getAchievementsForUser(userId);
+    }
+
 }
