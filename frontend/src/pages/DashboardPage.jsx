@@ -38,6 +38,7 @@ export default function DashboardPage() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [selectedRecipe, setSelectedRecipe] = useState(null);
+  const [lockedTargets, setLockedTargets] = useState(null);
 
   /* ---------------- Helper: fetch JSON with auth ---------------- */
   const fetchJson = async (url, opts = {}) => {
@@ -92,6 +93,13 @@ export default function DashboardPage() {
       protein: data.actualProteinG ?? data.targetProteinG,
       carbs: data.actualCarbG ?? data.targetCarbG,
       fat: data.actualFatG ?? data.targetFatG,
+    });
+
+    setLockedTargets({
+      targetKcal: data.targetKcal,
+      proteinG: data.targetProteinG,
+      carbG: data.targetCarbG,
+      fatG: data.targetFatG,
     });
 
     /* group meals by day & slot – backend day is 0‑based */
@@ -196,9 +204,8 @@ export default function DashboardPage() {
           {/* Macro summary */}
           <div className="grid grid-cols-2 grid-rows-2 gap-4">
             {['calories', 'protein', 'carbs', 'fat'].map(key => {
-              const over = macros[key] - params[
-                key === 'calories' ? 'targetKcal' : key === 'carbs' ? 'carbG' : key === 'protein' ? 'proteinG' : 'fatG'
-              ];
+              const targetValue = lockedTargets?.[key === 'calories' ? 'targetKcal' : key === 'protein' ? 'proteinG' : key === 'carbs' ? 'carbG' : 'fatG'];
+              const over = macros[key] - targetValue;
               return (
                 <div key={key}
                   className={`p-4 rounded-lg shadow flex flex-col justify-items-center
