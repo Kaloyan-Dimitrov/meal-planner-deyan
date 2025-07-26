@@ -42,7 +42,7 @@ function HomePage() {
       <header className="flex flex-col items-center text-center">
         <FaBowlFood className="text-5xl text-green-700" />
         <h1 className="text-white text-4xl md:text-5xl font-bold mb-4">
-          Meal Planner AI 🍽️
+          Meal Planner 🍽️
         </h1>
         <p className="text-white text-lg md:text-xl max-w-xl">
           Generate weekly meal plans, track macros, and get shopping lists – all powered by AI.
