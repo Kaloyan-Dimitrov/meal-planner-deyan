@@ -6,6 +6,7 @@ import WeightModal from '../components/WeightModal';
 import AchievementsModal from '../components/AchievementsModal';
 import { toast } from 'react-toastify';
 
+
 // DashboardPage.jsx – parses backend response shape (meals array, actual macros)
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -183,23 +184,29 @@ export default function DashboardPage() {
     <div className="min-h-screen bg-peach text-gray-800 p-4">
       {/* Nav */}
       <header className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Dashboard</h1>
-
+        <div className="bg-white rounded shadow px-3 pt-2 pb-2 text-center">
+          <h1 className="text-2xl font-bold">My Dashboard</h1>
+        </div>
         <div className="flex items-center space-x-3">
           <button
             onClick={() => setShowAchModal(true)}
-            className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
+            className="bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded"
           >
             Achievements
           </button>
 
           <button
             onClick={() => setShowWeightModal(true)}
-            className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded"
+            className="bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded"
           >
             Log Weight
           </button>
-
+          <button
+            onClick={() => navigate("/account")}
+            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
+          >
+            Account
+          </button>
           <button
             onClick={() => {
               localStorage.removeItem('jwt');
@@ -247,7 +254,7 @@ export default function DashboardPage() {
               </select>
             </div>
             <div className="mt-4 flex space-x-4">
-              <button onClick={handleGenerate} className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">Generate Plan</button>
+              <button onClick={handleGenerate} className="bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded">Generate Plan</button>
               <button onClick={handleRegenerate} className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600">Regenerate</button>
             </div>
           </div>
