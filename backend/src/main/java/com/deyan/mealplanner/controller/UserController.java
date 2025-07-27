@@ -1,9 +1,6 @@
 package com.deyan.mealplanner.controller;
 
-import com.deyan.mealplanner.dto.AchievementDTO;
-import com.deyan.mealplanner.dto.CreateUserRequest;
-import com.deyan.mealplanner.dto.UserDTO;
-import com.deyan.mealplanner.dto.WeightEntryDTO;
+import com.deyan.mealplanner.dto.*;
 import com.deyan.mealplanner.service.UserService;
 import org.springframework.web.bind.annotation.*;
 
@@ -36,6 +33,10 @@ public class UserController {
     @PostMapping("/{id}/weight")
     public WeightEntryDTO addWeightEntry(@PathVariable Long id, @RequestBody WeightEntryDTO weightEntryDTO){
         return userService.addUserWeightEntry(id,weightEntryDTO.weight());
+    }
+    @GetMapping("/{id}/weight")
+    public List<WeightChartDTO> getUserWeightEntries(@PathVariable Long id){
+     return userService.getRecentWeights(id);
     }
     @GetMapping("/{id}/achievements")
     public List<AchievementDTO> getAchievements(@PathVariable Long id){
