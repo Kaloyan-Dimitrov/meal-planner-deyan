@@ -1,9 +1,6 @@
 package com.deyan.mealplanner.service;
 
-import com.deyan.mealplanner.dto.AchievementDTO;
-import com.deyan.mealplanner.dto.CreateUserRequest;
-import com.deyan.mealplanner.dto.UserDTO;
-import com.deyan.mealplanner.dto.WeightEntryDTO;
+import com.deyan.mealplanner.dto.*;
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
 
@@ -245,4 +242,12 @@ public class UserService {
         return achievementService.getAchievementsForUser(userId);
     }
 
+    public List<WeightChartDTO> getRecentWeights(Long userId) {
+        return dsl.select(USER_PROGRESS.DATE.cast(LocalDate.class),USER_PROGRESS.WEIGHT)
+                .from(USER_PROGRESS)
+                .where(USER_PROGRESS.USER_ID.eq(userId))
+                .and(USER_PROGRESS.DATE.greaterOrEqual(LocalDateTime.now().minusDays(30)))
+                .orderBy(USER_PROGRESS.DATE.asc())
+                .fetchInto(WeightChartDTO.class);
+    }
 }
