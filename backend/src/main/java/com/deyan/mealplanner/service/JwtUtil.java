@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
+import java.time.Duration;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -17,23 +18,30 @@ import java.util.Map;
 @Component
 public class JwtUtil {
     private final String SECRET;
-    private final long EXPIRATION = 1000 * 60 * 60; // 1 hour
+    private static final Duration DEFAULT_ACCESS_TTL = Duration.ofMinutes(15);
 
     public JwtUtil(@Value("${jwt.secret}") String secret) {
         this.SECRET  = secret;
         System.out.println("JWT SECRET LOADED: " + secret);
     }
-    public String generateToken(UserDTO user) {
-        Map<String,Object> claims = new HashMap<>();
+    public String generateToken(UserDTO user, Duration ttl) {
+        Map<String, Object> claims = new HashMap<>();
         claims.put("userId", user.id());
+
+        Date now = new Date();
+        Date exp = new Date(now.getTime() + ttl.toMillis());
 
         return Jwts.builder()
                 .setClaims(claims)
-                .setSubject(user.email())             // sub = email
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION))
+                .setSubject(user.email())          // sub = email
+                .setIssuedAt(now)
+                .setExpiration(exp)
                 .signWith(Keys.hmacShaKeyFor(SECRET.getBytes()), SignatureAlgorithm.HS256)
                 .compact();
+
+    }
+    public String generateToken(UserDTO user) {
+        return generateToken(user, DEFAULT_ACCESS_TTL);
     }
 
     public String extractEmail(String token) {

@@ -1,4 +1,4 @@
 package com.deyan.mealplanner.dto;
 
-public class AuthTokenDTO {
+public record AuthTokenDTO(String accessToken, String refreshToken) {
 }
