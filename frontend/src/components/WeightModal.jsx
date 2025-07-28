@@ -18,7 +18,7 @@ export default function WeightModal({ open, onClose, userId, authHeader, onSucce
     const save = async () => {
         if (!weight || Number(weight) <= 0) return toast.error('Enter a valid weight');
 
-        const res = await fetch(`/api/users/${userId}/weight`, {
+        const res = await apiFetch(`/api/users/${userId}/weight`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', ...authHeader },
             body: JSON.stringify({ weight: Number(weight) }),

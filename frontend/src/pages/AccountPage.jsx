@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { jwtDecode } from 'jwt-decode';
 import { useNavigate } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { apiFetch } from '../utils/auth';
 
 function AccountPage() {
     const navigate = useNavigate();
@@ -23,11 +24,11 @@ function AccountPage() {
     if (!userId) return <p>Not logged in</p>;
 
     useEffect(() => {
-        fetch(`/api/users/${userId}`, { headers: authHeader })
+        apiFetch(`/api/users/${userId}`)
             .then(res => res.json())
             .then(setUser);
 
-        fetch(`/api/users/${userId}/weight`, { headers: authHeader })
+        apiFetch(`/api/users/${userId}/weight`)
             .then(res => res.json())
             .then(data => {
                 // Format dates for chart

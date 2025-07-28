@@ -1,45 +1,48 @@
 import { useState } from "react";
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
+import { saveTokens } from "../utils/auth";
+import { apiFetch } from "../utils/auth";
 function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const [rememberMe, setRememberMe] = useState(false);
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setError('');
 
-const handleLogin = async (e) => {
-  e.preventDefault();
-  setError('');
+    try {
+      const res = await apiFetch('http://localhost:8080/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, rememberMe }),
+      });
 
-  try {
-    const res = await fetch('http://localhost:8080/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
+      const text = await res.text();
 
-    const text = await res.text();
-
-    if (!res.ok) {
-      try {
-        const data = JSON.parse(text);
-        throw new Error(data.message || 'Login failed');
-      } catch {
-        throw new Error(text || 'Login failed');
+      if (!res.ok) {
+        try {
+          const data = JSON.parse(text);
+          throw new Error(data.message || 'Login failed');
+        } catch {
+          throw new Error(text || 'Login failed');
+        }
       }
+
+      const { accessToken, refreshToken } = JSON.parse(text);
+        saveTokens({ accessToken, refreshToken });
+
+
+      console.log('✅ Login success, navigating to /dashboard');
+      navigate('/dashboard');
+    } catch (err) {
+      console.error('❌ Login error:', err.message);
+      setError(err.message);
     }
-
-    const { token } = JSON.parse(text);
-    localStorage.setItem('jwt', token);
-
-    console.log('✅ Login success, navigating to /dashboard');
-    navigate('/dashboard');
-  } catch (err) {
-    console.error('❌ Login error:', err.message);
-    setError(err.message);
-  }
-};
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-peach text-gray-800">
@@ -97,7 +100,10 @@ const handleLogin = async (e) => {
               </button>
             </div>
           </div>
-
+          <label className="flex items-center mb-4">
+            <input type="checkbox" className="mr-2" checked={rememberMe} onChange={e => setRememberMe(e.target.checked)} />
+            Remember me (30 days)
+          </label>
           <button
             type="submit"
             className="w-full bg-green-700 text-white py-2 rounded hover:bg-blue-700 transition"

@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { saveTokens } from '../utils/auth';
+import { apiFetch } from '../utils/auth';
 
 function RegisterPage() {
     const [name, setName] = useState('');
@@ -14,7 +16,7 @@ function RegisterPage() {
         setError('');
 
         try {
-            const res = await fetch('http://localhost:8080/auth/register', {
+            const res = await apiFetch('http://localhost:8080/auth/register', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ name, email, password, weight }),
@@ -30,7 +32,9 @@ function RegisterPage() {
                 }
             }
 
-            navigate('/login');
+             const { accessToken, refreshToken } = await res.json();
+             saveTokens({ accessToken, refreshToken });
+             navigate('/login');    
         } catch (err) {
             setError(err.message);
         }
