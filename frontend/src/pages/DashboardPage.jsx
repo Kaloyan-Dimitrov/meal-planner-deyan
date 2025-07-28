@@ -5,7 +5,8 @@ import RecipeModal from '../components/RecipeModal'
 import WeightModal from '../components/WeightModal';
 import AchievementsModal from '../components/AchievementsModal';
 import { toast } from 'react-toastify';
-
+import { clearTokens } from '../utils/auth';
+import { apiFetch } from '../utils/auth';
 
 // DashboardPage.jsx – parses backend response shape (meals array, actual macros)
 export default function DashboardPage() {
@@ -53,21 +54,11 @@ export default function DashboardPage() {
     setError(null);
     setLoading(true);
     try {
-      const res = await fetch(url, {
-        headers: { 'Content-Type': 'application/json', ...authHeader },
-        ...opts,
-      });
-      if (res.status === 403) {
-        navigate('/login');
-        return null;
-      }
-      const ct = res.headers.get('content-type') || '';
-      if (!ct.includes('application/json')) throw new Error(`Expected JSON, got ${ct}`);
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || `${res.status}`);
+      const res = await apiFetch(url, opts);
+      const data = res.headers.get('content-type')?.includes('application/json') ? await res.json() : null;
+      if (!res.ok) throw new Error(data.message || res.status);
       return data;
     } catch (e) {
-      console.error(e);
       setError(e.message);
       return null;
     } finally {
@@ -154,7 +145,26 @@ export default function DashboardPage() {
     );
     console.log('mealPlan →', grouped);
   };
+  const handleLogout = async () => {
+    // grab the refresh-token cookie (may be undefined if httpOnly mode)
+    const rt = document.cookie
+      .split('; ')
+      .find(c => c.startsWith('rt='))?.split('=')[1];
 
+    // tell the backend to invalidate it (safe even if rt === undefined)
+    try {
+      await apiFetch('/auth/logout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken: rt })
+      });
+    } catch (e) {
+      console.warn('Logout call failed:', e);
+    }
+
+    clearTokens();           // wipes localStorage + cookie
+    navigate('/login');      // send user to login page
+  };
   /* ---------------- Load selected plan details ---------------- */
   useEffect(() => {
     if (!selectedPlanId) return;
@@ -208,18 +218,16 @@ export default function DashboardPage() {
             Account
           </button>
           <button
-            onClick={() => {
-              localStorage.removeItem('jwt');
-              navigate('/login');
-            }}
+            onClick={handleLogout}
             className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
           >
             Logout
           </button>
         </div>
-      </header>
+      </header >
 
-      {error && <div className="bg-red-100 text-red-800 p-3 rounded mb-4">Error: {error}</div>}
+      {error && <div className="bg-red-100 text-red-800 p-3 rounded mb-4">Error: {error}</div>
+      }
       {loading && <div className="text-gray-600 mb-4">Loading...</div>}
 
       <main className="space-y-8">
@@ -321,31 +329,35 @@ export default function DashboardPage() {
           </div>
         </section>
       </main>
-      {selectedRecipe && (
-        <RecipeModal
-          recipe={selectedRecipe}
-          onClose={() => setSelectedRecipe(null)}
-        />
-      )}
-      {showWeightModal && (
-        <WeightModal
-          open={showWeightModal}
-          onClose={() => setShowWeightModal(false)}
-          userId={userId}
-          authHeader={authHeader}
-          onSuccess={(payload) => {
-            if (payload.newAchievements?.length) {
-              toastNewUnlocks(payload.newAchievements);
-              loadAchievements();
-            }
-          }}
-        />)}
+      {
+        selectedRecipe && (
+          <RecipeModal
+            recipe={selectedRecipe}
+            onClose={() => setSelectedRecipe(null)}
+          />
+        )
+      }
+      {
+        showWeightModal && (
+          <WeightModal
+            open={showWeightModal}
+            onClose={() => setShowWeightModal(false)}
+            userId={userId}
+            authHeader={authHeader}
+            onSuccess={(payload) => {
+              if (payload.newAchievements?.length) {
+                toastNewUnlocks(payload.newAchievements);
+                loadAchievements();
+              }
+            }}
+          />)
+      }
       <AchievementsModal
         open={showAchModal}
         onClose={() => setShowAchModal(false)}
         achievements={achievements}
       />
 
-    </div>
+    </div >
   );
 }
