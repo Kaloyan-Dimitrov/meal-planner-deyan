@@ -7,6 +7,10 @@ import AchievementsModal from '../components/AchievementsModal';
 import { toast } from 'react-toastify';
 import { clearTokens } from '../utils/auth';
 import { apiFetch } from '../utils/auth';
+import { toggleTheme } from '../utils/theme';
+import { Menu } from '@headlessui/react';
+import { FaUserCircle, FaSun, FaMoon, FaSignOutAlt, FaTrophy, FaWeight, FaCog } from 'react-icons/fa';
+
 
 // DashboardPage.jsx – parses backend response shape (meals array, actual macros)
 export default function DashboardPage() {
@@ -191,39 +195,81 @@ export default function DashboardPage() {
   };
   /* ---------------- Render ---------------- */
   return (
-    <div className="min-h-screen bg-peach text-gray-800 p-4">
+    <div className="relative min-h-screen bg-peach dark:bg-gray-900 text-gray-800 dark:text-white p-4">
       {/* Nav */}
       <header className="flex items-center justify-between mb-6">
         <div className="bg-white rounded shadow px-3 pt-2 pb-2 text-center">
-          <h1 className="text-2xl font-bold">My Dashboard</h1>
+          <h1 className="text-2xl font-bold text-gray-800">My Dashboard</h1>
         </div>
-        <div className="flex items-center space-x-3">
-          <button
-            onClick={() => setShowAchModal(true)}
-            className="bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded"
-          >
-            Achievements
-          </button>
+        <Menu as="div" className="relative inline-block text-left">
+          <Menu.Button className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
+            <FaUserCircle />
+            <span>Account</span>
+          </Menu.Button>
 
-          <button
-            onClick={() => setShowWeightModal(true)}
-            className="bg-green-700 hover:bg-green-800 text-white px-4 py-2 rounded"
-          >
-            Log Weight
-          </button>
-          <button
-            onClick={() => navigate("/account")}
-            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded"
-          >
-            Account
-          </button>
-          <button
-            onClick={handleLogout}
-            className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded"
-          >
-            Logout
-          </button>
-        </div>
+          <Menu.Items className="absolute right-0 mt-2 w-56 origin-top-right bg-white dark:bg-gray-800 divide-y divide-gray-100 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
+            <div className="px-1 py-1">
+              <Menu.Item>
+                {({ active }) => (
+                  <button
+                    onClick={() => setShowAchModal(true)}
+                    className={`${active ? 'bg-blue-500 text-white' : 'text-gray-800 dark:text-white'
+                      } group flex w-full items-center px-4 py-2 text-sm`}
+                  >
+                    <FaTrophy className="mr-2" /> Achievements
+                  </button>
+                )}
+              </Menu.Item>
+              <Menu.Item>
+                {({ active }) => (
+                  <button
+                    onClick={() => setShowWeightModal(true)}
+                    className={`${active ? 'bg-blue-500 text-white' : 'text-gray-800 dark:text-white'
+                      } group flex w-full items-center px-4 py-2 text-sm`}
+                  >
+                    <FaWeight className="mr-2" /> Log Weight
+                  </button>
+                )}
+              </Menu.Item>
+              <Menu.Item>
+                {({ active }) => (
+                  <button
+                    onClick={() => navigate("/account")}
+                    className={`${active ? 'bg-blue-500 text-white' : 'text-gray-800 dark:text-white'
+                      } group flex w-full items-center px-4 py-2 text-sm`}
+                  >
+                    <FaCog className="mr-2" /> Account Settings
+                  </button>
+                )}
+              </Menu.Item>
+              <Menu.Item>
+                {({ active }) => (
+                  <button
+                    onClick={toggleTheme}
+                    className={`${active ? 'bg-blue-500 text-white' : 'text-gray-800 dark:text-white'
+                      } group flex w-full items-center px-4 py-2 text-sm`}
+                  >
+                    <FaSun className="mr-2 dark:hidden" />
+                    <FaMoon className="mr-2 hidden dark:inline" />
+                    Toggle Theme
+                  </button>
+                )}
+              </Menu.Item>
+              <Menu.Item>
+                {({ active }) => (
+                  <button
+                    onClick={handleLogout}
+                    className={`${active ? 'bg-red-500 text-white' : 'text-gray-800 dark:text-white'
+                      } group flex w-full items-center px-4 py-2 text-sm`}
+                  >
+                    <FaSignOutAlt className="mr-2" /> Logout
+                  </button>
+                )}
+              </Menu.Item>
+            </div>
+          </Menu.Items>
+        </Menu>
+
       </header >
 
       {error && <div className="bg-red-100 text-red-800 p-3 rounded mb-4">Error: {error}</div>
@@ -234,8 +280,8 @@ export default function DashboardPage() {
         {/* Plan selector */}
         <section className="flex items-center space-x-4">
           <label className="flex items-center">
-            <span className="mr-2">Saved Plans:</span>
-            <select value={selectedPlanId || ''} onChange={e => setSelectedPlanId(e.target.value)} className="border rounded px-2 py-1">
+            <span className="mr-2text-gray-800">Saved Plans:</span>
+            <select value={selectedPlanId || ''} onChange={e => setSelectedPlanId(e.target.value)} className="border rounded px-2 py-1 text-gray-800">
               {plans.map(p => <option key={p.id} value={p.id}>{p.name || `Plan ${p.id}`}</option>)}
             </select>
           </label>
@@ -246,9 +292,9 @@ export default function DashboardPage() {
           <div>
             <h2 className="text-xl font-semibold mb-4">Macro Targets</h2>
             {['targetKcal', 'proteinG', 'carbG', 'fatG'].map(k => (
-              <div key={k} className="flex items-center mb-2">
+              <div key={k} className="flex items-center mb-2 ">
                 <label className="w-24 capitalize">{k.replace('G', '')}:</label>
-                <input type="number" value={params[k]} onChange={e => setParams(prev => ({ ...prev, [k]: Number(e.target.value) }))} className="border rounded px-2 py-1 flex-grow" />
+                <input type="number" value={params[k]} onChange={e => setParams(prev => ({ ...prev, [k]: Number(e.target.value) }))} className="border rounded px-2 py-1 flex-grow text-gray-800"/>
                 <span className="ml-2">{k === 'targetKcal' ? 'kcal' : 'g'}</span>
               </div>
             ))}
@@ -257,7 +303,7 @@ export default function DashboardPage() {
             </p>
             <div className="flex items-center mt-4">
               <label className="mr-2">Plan Duration:</label>
-              <select value={params.days} onChange={e => setParams(prev => ({ ...prev, days: Number(e.target.value) }))} className="border rounded px-2 py-1">
+              <select value={params.days} onChange={e => setParams(prev => ({ ...prev, days: Number(e.target.value) }))} className="border rounded px-2 py-1 text-gray-800">
                 {planLengths.map(d => <option key={d} value={d}>{d} day{d > 1 ? 's' : ''}</option>)}
               </select>
             </div>
@@ -268,7 +314,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Macro summary */}
-          <div className="grid grid-cols-2 grid-rows-2 gap-4">
+          <div className="grid grid-cols-2 grid-rows-2 gap-4 ">
             {['calories', 'protein', 'carbs', 'fat'].map(key => {
               const targetValue = lockedTargets?.[key === 'calories' ? 'targetKcal' : key === 'protein' ? 'proteinG' : key === 'carbs' ? 'carbG' : 'fatG'];
               const over = macros[key] - targetValue;
@@ -278,8 +324,8 @@ export default function DashboardPage() {
                       ${over < -5 ? 'bg-red-100 text-red-700'
                       : over > 5 ? 'bg-green-100 text-green-700'
                         : 'bg-white'}`}>
-                  <span className="text-sm capitalize">{key}</span>
-                  <span className="text-2xl font-bold">{macros[key] ?? '--'}</span>
+                  <span className="text-sm capitalize text-gray-800">{key}</span>
+                  <span className="text-2xl font-bold text-gray-800">{macros[key] ?? '--'}</span>
                 </div>
               );
             })}
@@ -290,10 +336,10 @@ export default function DashboardPage() {
         <section>
           <h2 className="text-xl font-semibold mb-4">Meal Plan</h2>
           <div className="overflow-x-auto">
-            <table className="min-w-full bg-white rounded-lg shadow">
+            <table className="min-w-full bg-white dark:bg-gray-800 text-gray-800 dark:text-white rounded-lg shadow">
               <thead>
                 <tr>
-                  <th className="px-4 py-2 sticky left-0 bg-white">Day</th>
+                  <th className="px-4 py-2 sticky left-0 bg-white dark:bg-gray-800 text-gray-800 dark:text-white">Day</th>
                   {slots.map(s => <th key={s} className="px-4 py-2">{s}</th>)}
                 </tr>
               </thead>
@@ -303,7 +349,7 @@ export default function DashboardPage() {
                 ) : (
                   mealPlan.map((d, i) => (
                     <tr key={i} className="border-t">
-                      <td className="px-4 py-2 font-medium sticky left-0 bg-white">{d.day}</td>
+                      <td className="px-4 py-2 font-medium sticky left-0 bg-white dark:text-white dark:bg-gray-800">{d.day}</td>
                       {slots.map((s) => {
                         const meal = d.meals[s];
                         return (

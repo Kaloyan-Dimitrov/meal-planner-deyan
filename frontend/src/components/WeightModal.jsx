@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { toast } from 'react-toastify';
-
+import { apiFetch } from '../utils/auth';
 /**
  * Props
  * ─────────────────────────────────────────────
@@ -40,8 +40,8 @@ export default function WeightModal({ open, onClose, userId, authHeader, onSucce
 
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-            <div className="bg-white p-6 rounded-lg w-full max-w-sm">
+         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+            <div className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white p-6 rounded-lg w-full max-w-sm shadow-lg">
                 <h2 className="text-xl font-semibold mb-4">Update Today&rsquo;s Weight</h2>
 
                 <input
@@ -50,13 +50,13 @@ export default function WeightModal({ open, onClose, userId, authHeader, onSucce
                     value={weight}
                     onChange={(e) => setWeight(e.target.value)}
                     placeholder="kg"
-                    className="w-full border px-3 py-2 rounded mb-4"
+                    className="w-full border px-3 py-2 rounded mb-4 bg-white dark:bg-gray-700 text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
                 />
 
                 <div className="flex justify-end space-x-3">
                     <button
                         onClick={onClose}
-                        className="bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded"
+                        className="bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500 text-black dark:text-white px-4 py-2 rounded"
                     >
                         Cancel
                     </button>

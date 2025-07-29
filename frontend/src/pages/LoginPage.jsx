@@ -45,14 +45,14 @@ function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-peach text-gray-800">
-      <div className="relative bg-white p-8 rounded-lg shadow-md w-full max-w-md">
+    <div className="min-h-screen flex items-center justify-center bg-peach dark:bg-gray-900 text-gray-800 dark:text-white">
+      <div className="relative bg-white dark:bg-gray-800 p-8 rounded-lg shadow-md w-full max-w-md">
 
         {/* Top-left link */}
         <button
           type="button"
           onClick={() => navigate('/')}
-          className="absolute top-2 left-3 text-blue-600 text-sm hover:underline"
+          className="absolute top-2 left-3 text-blue-600 dark:text-blue-400 text-sm hover:underline"
         >
           ← Back to Homepage
         </button>
@@ -60,7 +60,7 @@ function LoginPage() {
         <h2 className="text-2xl font-semibold mb-6 text-center">Login</h2>
 
         {error && (
-          <div className="text-sm text-red-600 mb-4 text-center">{error}</div>
+          <div className="text-sm text-red-600 dark:text-red-400 mb-4 text-center">{error}</div>
         )}
 
         <form onSubmit={handleLogin}>
@@ -69,7 +69,7 @@ function LoginPage() {
             <input
               id="email"
               type="email"
-              className="w-full border px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-peach"
+              className="w-full border px-4 py-2 rounded bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-peach"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -82,7 +82,7 @@ function LoginPage() {
               <input
                 id="password"
                 type={showPassword ? 'text' : 'password'}
-                className="w-full border px-4 py-2 rounded focus:outline-none focus:ring-2 focus:ring-peach"
+                className="w-full border px-4 py-2 rounded bg-white dark:bg-gray-700 text-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-peach"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -90,23 +90,26 @@ function LoginPage() {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-600 hover:text-gray-800"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-white"
               >
-                {showPassword ? (
-                  <i className="fa-solid fa-eye-slash"></i>
-                ) : (
-                  <i className="fa-solid fa-eye"></i>
-                )}
+                {showPassword ? <FaEyeSlash /> : <FaEye />}
               </button>
             </div>
           </div>
-          <label className="flex items-center mb-4">
-            <input type="checkbox" className="mr-2" checked={rememberMe} onChange={e => setRememberMe(e.target.checked)} />
+
+          <label className="flex items-center mb-4 text-sm">
+            <input
+              type="checkbox"
+              className="mr-2"
+              checked={rememberMe}
+              onChange={e => setRememberMe(e.target.checked)}
+            />
             Remember me (30 days)
           </label>
+
           <button
             type="submit"
-            className="w-full bg-green-700 text-white py-2 rounded hover:bg-blue-700 transition"
+            className="w-full bg-green-700 hover:bg-green-800 text-white py-2 rounded transition"
           >
             Login
           </button>
@@ -114,7 +117,7 @@ function LoginPage() {
 
         <p className="text-sm text-center mt-4">
           Don’t have an account?{' '}
-          <a href="/register" className="text-blue-600 hover:underline">
+          <a href="/register" className="text-blue-600 dark:text-blue-400 hover:underline">
             Create One
           </a>
         </p>

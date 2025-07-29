@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 
+
 function AchievementsModal({ open, onClose, achievements }) {
   useEffect(() => {
     if (!open) return;
@@ -14,26 +15,28 @@ function AchievementsModal({ open, onClose, achievements }) {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <div className="bg-white w-full max-w-md p-6 rounded-lg shadow-lg">
+     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+      <div className="bg-white dark:bg-gray-800 text-gray-800 dark:text-white w-full max-w-md p-6 rounded-lg shadow-lg">
         <h2 className="text-xl font-semibold mb-4 text-center">Achievements</h2>
 
-        <div className="space-y-4 max-h-[60vh] overflow-y-auto">
+        <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
           {achievements.map((a) => (
             <div key={a.id} className="flex flex-col">
               <span
                 className={
-                  a.unlocked ? 'text-green-700 font-medium' : 'text-gray-800'
+                  a.unlocked
+                    ? 'text-green-700 dark:text-green-400 font-medium'
+                    : 'text-gray-800 dark:text-gray-300'
                 }
               >
                 {a.name}
               </span>
-              <span className="text-xs text-gray-500">{a.description}</span>
+              <span className="text-xs text-gray-500 dark:text-gray-400">{a.description}</span>
 
               {a.unlocked ? (
-                <span className="text-xs text-green-600 mt-1">Completed 🎉</span>
+                <span className="text-xs text-green-600 dark:text-green-400 mt-1">Completed 🎉</span>
               ) : (
-                <div className="w-full bg-gray-200 h-2 rounded-full mt-1">
+                <div className="w-full bg-gray-200 dark:bg-gray-600 h-2 rounded-full mt-1">
                   <div
                     className="bg-blue-500 h-full rounded-full"
                     style={{
@@ -51,7 +54,7 @@ function AchievementsModal({ open, onClose, achievements }) {
 
         <button
           onClick={onClose}
-          className="block mt-6 mx-auto bg-gray-300 hover:bg-gray-400 px-4 py-2 rounded"
+          className="block mt-6 mx-auto bg-gray-300 dark:bg-gray-600 hover:bg-gray-400 dark:hover:bg-gray-500 text-black dark:text-white px-4 py-2 rounded"
         >
           Close
         </button>
