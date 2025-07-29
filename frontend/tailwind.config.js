@@ -4,11 +4,12 @@ export default {
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
+  darkMode: 'class',
   theme: {
     extend: {
       colors: {
         peach: "#f7ccba",
-        paleblue : "#96e7dc"
+        paleblue: "#96e7dc"
       },
     },
   },

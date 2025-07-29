@@ -5,22 +5,22 @@ function RecipeModal({ recipe, onClose }) {
     return (
     <div
       className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center"
-      onClick={onClose}               /* click backdrop → close */
+      onClick={onClose}
     >
       <div
-        className="relative bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6"
-        onClick={(e) => e.stopPropagation()}   /* keep clicks inside */
+        className="relative bg-white dark:bg-gray-800 text-gray-800 dark:text-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6"
+        onClick={(e) => e.stopPropagation()}
       >
-        {/* close button */}
+        {/* Close button */}
         <button
-          className="absolute top-3 right-3 text-gray-500 hover:text-black text-xl"
+          className="absolute top-3 right-3 text-gray-500 dark:text-gray-300 hover:text-black dark:hover:text-white text-xl"
           onClick={onClose}
         >
           ×
         </button>
 
         <h2 className="text-2xl font-bold mb-1">{recipe.title}</h2>
-        <p className="text-sm text-gray-600 mb-4">
+        <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">
           Prep time: {recipe.readyInMinutes} min • Servings: {recipe.servings}
         </p>
 
@@ -38,12 +38,13 @@ function RecipeModal({ recipe, onClose }) {
             href={recipe.sourceUrl}
             target="_blank"
             rel="noreferrer"
-            className="inline-block text-blue-600 underline"
+            className="inline-block text-blue-600 dark:text-blue-400 underline"
           >
             Full instructions ↗
           </a>
-        ) : 
-        <span className="text-gray-500 italic">No instructions available</span>}
+        ) : (
+          <span className="text-gray-500 dark:text-gray-400 italic">No instructions available</span>
+        )}
       </div>
     </div>
   );
