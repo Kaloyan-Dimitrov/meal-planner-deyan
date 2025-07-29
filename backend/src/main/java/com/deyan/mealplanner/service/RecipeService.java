@@ -1,6 +1,6 @@
 package com.deyan.mealplanner.service;
 
-import com.deyan.mealplanner.dto.NutritionResponse;
+import com.deyan.mealplanner.exceptions.NotFoundException;
 import com.deyan.mealplanner.dto.RecipeDetailsDTO;
 import com.deyan.mealplanner.jooq.tables.records.RecipeRecord;
 import org.jooq.DSLContext;
@@ -24,7 +24,7 @@ public class RecipeService {
                 .fetchOne();
 
         if (recipe == null) {
-            throw new IllegalArgumentException("Recipe not found with ID: " + recipeId);
+            throw new NotFoundException("Recipe not found with ID: " + recipeId);
         }
 
         // Fetch ingredients

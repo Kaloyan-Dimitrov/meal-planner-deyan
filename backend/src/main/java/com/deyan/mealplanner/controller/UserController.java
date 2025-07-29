@@ -2,6 +2,7 @@ package com.deyan.mealplanner.controller;
 
 import com.deyan.mealplanner.dto.*;
 import com.deyan.mealplanner.service.UserService;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -19,17 +20,20 @@ public class UserController {
         return userService.getAllUsers();
     }
     @PostMapping
-    public UserDTO createUser(@RequestBody CreateUserRequest userRequest){
-        return userService.createUser(userRequest);
+    public ResponseEntity<UserDTO> createUser(@RequestBody CreateUserRequest req) {
+        UserDTO created = userService.createUser(req);
+        return ResponseEntity.status(201).body(created);
     }
     @GetMapping("/{id}")
     public UserDTO getUserById(@PathVariable Long id){
         return userService.getUserById(id);
     }
     @DeleteMapping("/{id}")
-    public void deleteUserById(@PathVariable Long id){
+    public ResponseEntity<Void> deleteUserById(@PathVariable Long id) {
         userService.deleteUserById(id);
+        return ResponseEntity.noContent().build();
     }
+
     @PostMapping("/{id}/weight")
     public WeightEntryDTO addWeightEntry(@PathVariable Long id, @RequestBody WeightEntryDTO weightEntryDTO){
         return userService.addUserWeightEntry(id,weightEntryDTO.weight());

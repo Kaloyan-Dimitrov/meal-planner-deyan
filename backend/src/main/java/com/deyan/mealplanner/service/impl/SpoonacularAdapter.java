@@ -1,18 +1,18 @@
 package com.deyan.mealplanner.service.impl;
 
-import com.deyan.mealplanner.dto.MealPlanDTO;
-import com.deyan.mealplanner.dto.NutritionResponse;
-import com.deyan.mealplanner.dto.RecipeDetailsDTO;
-import com.deyan.mealplanner.dto.WeeklyMealPlanDTO;
+import com.deyan.mealplanner.dto.*;
+import com.deyan.mealplanner.exceptions.ExternalApiQuotaException;
 import com.deyan.mealplanner.service.interfaces.RecipeAPIAdapter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
+import reactor.core.publisher.Mono;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -118,10 +118,11 @@ public class SpoonacularAdapter implements RecipeAPIAdapter {
             // helpful diagnostics in the log
             if (e.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS) {
                 log.error("Spoonacular daily quota exhausted (429).");
+                throw new ExternalApiQuotaException("Spoonacular daily quota exhausted (429)");
             } else {
                 log.error("Spoonacular error {} – {}", e.getStatusCode(), e.getResponseBodyAsString());
+                throw new ExternalApiQuotaException("Spoonacular error " + e.getStatusCode() + " " + e.getMessage());
             }
-            throw e;    // propagate so the service layer can decide what to do
         }
     }
 
@@ -130,15 +131,25 @@ public class SpoonacularAdapter implements RecipeAPIAdapter {
        -------------------------------------------------------------------------*/
     @Override
     public RecipeDetailsDTO getRecipe(Long id) {
+        try {
+            RecipeDetailsDTO dto = web.get()
+                    .uri(INFO_ENDPOINT, id, apiKey)
+                    .retrieve()
+                    .onStatus(HttpStatusCode::is4xxClientError, res -> res.bodyToMono(String.class).flatMap(msg -> {
+                        log.warn("❌ Spoonacular 4xx: {}", msg);
+                        return Mono.error(new ExternalApiQuotaException("Spoonacular quota exceeded or access denied"));
+                    }))
+                    .onStatus(HttpStatusCode::is5xxServerError, res -> Mono.error(new RuntimeException("Spoonacular server error")))
+                    .bodyToMono(RecipeDetailsDTO.class)
+                    .doOnNext(r -> log.debug("Recipe {} → title={}, url={}", id, r.title(), r.sourceUrl()))
+                    .block();
 
-        RecipeDetailsDTO dto =  web.get()
-                .uri(INFO_ENDPOINT, id, apiKey)
-                .retrieve()
-                .bodyToMono(RecipeDetailsDTO.class)
-                .doOnNext(r -> log.debug("Recipe {} → title={}, url={}", id, r.title(), r.sourceUrl()))
-                .block();
-        log.info("Nutrition for recipe {} → {}", id, dto.nutrition());
-    return dto;
+            return dto;
+
+        } catch (Exception ex) {
+
+            throw ex;
+        }
     }
     public Optional<NutritionResponse> fetchNutritionWidget(Long id) {
         String url = String.format("/recipes/%d/nutritionWidget.json?apiKey=%s", id, apiKey);

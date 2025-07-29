@@ -8,6 +8,7 @@ import com.deyan.mealplanner.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
@@ -28,9 +29,13 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<AuthTokenDTO> login(@RequestBody AuthRequest req) {
 
-        authManager.authenticate(
-                new UsernamePasswordAuthenticationToken(req.email(), req.password())
-        );
+        try {
+            authManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(req.email(), req.password())
+            );
+        } catch (Exception ex) {
+            throw new BadCredentialsException("Incorrect email or password");
+        }
 
         UserDTO user = userService.findByEmail(req.email());
 

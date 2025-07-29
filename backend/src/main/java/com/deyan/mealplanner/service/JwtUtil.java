@@ -45,12 +45,12 @@ public class JwtUtil {
     }
 
     public String extractEmail(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(SECRET.getBytes())
-                .build()
-                .parseClaimsJws(token)
-                .getBody()
-                .getSubject();
+        try {
+            return parse(token).getBody().getSubject();
+        } catch (Exception e) {
+            return null;
+        }
+
     }
     public Claims extractAllClaims(String token) {
         return parse(token).getBody();

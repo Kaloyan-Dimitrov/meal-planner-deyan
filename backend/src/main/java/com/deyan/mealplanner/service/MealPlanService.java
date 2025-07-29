@@ -1,11 +1,10 @@
 package com.deyan.mealplanner.service;
 
-import com.deyan.mealplanner.dto.MealPlanDTO;
-import com.deyan.mealplanner.dto.MealPlanDetailsDTO;
-import com.deyan.mealplanner.dto.MealPlanSummaryDTO;
-import com.deyan.mealplanner.dto.RecipeDetailsDTO;
+import com.deyan.mealplanner.dto.*;
+import com.deyan.mealplanner.exceptions.BadRequestException;
+import com.deyan.mealplanner.exceptions.ExternalApiQuotaException;
+import com.deyan.mealplanner.exceptions.NotFoundException;
 import com.deyan.mealplanner.service.interfaces.RecipeAPIAdapter;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
 import org.springframework.stereotype.Service;
@@ -58,12 +57,12 @@ public class MealPlanService {
                            Integer p, Integer c, Integer f,
                            Integer days) {
         if(days != 1 && days!=7){
-            throw new IllegalArgumentException("Days must be 1 or 7");
+            throw new BadRequestException("Days must be 1 or 7");
         }
         log.debug("SERVICE     ⇢  targetKcal = {}", targetKcal);
         MealPlanDTO apiPlan = external.generateMealPlan(targetKcal, days);
         if (apiPlan.meals() == null || apiPlan.meals().isEmpty()) {
-            throw new IllegalStateException(
+            throw new ExternalApiQuotaException(
                     "Spoonacular returned no meals for kcal=" + targetKcal + ", days=" + days);
         }
         int targetCalories = (targetKcal != null) ? targetKcal : apiPlan.nutrients().calories().intValue();
@@ -235,7 +234,7 @@ public class MealPlanService {
         var plan = db.selectFrom(MEAL_PLAN)
                 .where(MEAL_PLAN.ID.eq(planId).and(MEAL_PLAN.USER_ID.eq(userId)))
                 .fetchOne();
-        if (plan == null) throw new IllegalArgumentException("Plan not found");
+        if (plan == null) throw new NotFoundException("Meal plan not found or not accessible");
         var mealRecords = db.select(
                         MEAL_PLAN_RECIPE.DAY_INDEX,
                         MEAL_PLAN_RECIPE.MEAL_SLOT
@@ -365,7 +364,7 @@ public class MealPlanService {
                 db.selectFrom(MEAL_PLAN)
                         .where(MEAL_PLAN.ID.eq(planId).and(MEAL_PLAN.USER_ID.eq(userId)))
         );
-        if (!valid) throw new IllegalArgumentException("Plan not found or unauthorized");
+        if (!valid) throw new NotFoundException("You do not own this meal plan.");
 
         db.deleteFrom(SHOPPING_LIST_ITEM)
                 .where(SHOPPING_LIST_ITEM.SHOPPING_LIST_ID.in(
@@ -395,7 +394,7 @@ public class MealPlanService {
                 .fetchOneInto(Long.class);
 
         if (latestPlanId == null) {
-            throw new IllegalArgumentException("No meal plans found for user " + userId);
+            throw new NotFoundException("No meal plans found for user " + userId);
         }
         return getPlanById(userId, latestPlanId);
     }

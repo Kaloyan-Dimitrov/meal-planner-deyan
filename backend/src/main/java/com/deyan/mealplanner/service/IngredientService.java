@@ -1,8 +1,9 @@
 package com.deyan.mealplanner.service;
 
+import com.deyan.mealplanner.exceptions.AlreadyExistsException;
 import com.deyan.mealplanner.dto.IngredientDTO;
 import com.deyan.mealplanner.dto.NewIngredientDTO;
-import com.deyan.mealplanner.jooq.tables.Ingredient;
+import com.deyan.mealplanner.exceptions.NotFoundException;
 import com.deyan.mealplanner.jooq.tables.records.IngredientRecord;
 import org.jooq.DSLContext;
 import org.springframework.stereotype.Service;
@@ -10,7 +11,6 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 import static com.deyan.mealplanner.jooq.tables.Ingredient.INGREDIENT;
-import static com.deyan.mealplanner.jooq.tables.Users.USERS;
 
 @Service
 public class IngredientService {
@@ -26,7 +26,7 @@ public class IngredientService {
                 .where(INGREDIENT.ID.eq(id))
                 .fetchOptional()
                 .map(this::toDto)
-                .orElseThrow(()->new IllegalArgumentException("Ingredient not found " + id));
+                .orElseThrow(()->new NotFoundException("Ingredient not found: " + id));
     }
     public IngredientDTO createIngredient(NewIngredientDTO ingredientDTO){
         boolean exists = dsl.fetchExists(
@@ -34,16 +34,13 @@ public class IngredientService {
                         .from(INGREDIENT)
                         .where(INGREDIENT.NAME.eq(ingredientDTO.name())));
         if (exists) {
-            throw new IllegalArgumentException("Ingredient already exists: " + ingredientDTO.name());
+            throw new AlreadyExistsException("Ingredient already exists: " + ingredientDTO.name());
         }
 
-        // 1) plain INSERT — **no RETURNING**
         dsl.insertInto(INGREDIENT)
                 .set(INGREDIENT.NAME,          ingredientDTO.name())
                 .execute();
 
-        // 2) fetch the generated PK from the session sequence
-        //    works because we're still on the same connection
         var id = dsl.select(INGREDIENT.ID)
                 .from(INGREDIENT)
                 .where(INGREDIENT.NAME.eq(ingredientDTO.name())) // or any unique field
@@ -64,10 +61,9 @@ public class IngredientService {
         );
 
         if (updated == 0) {
-            throw new IllegalArgumentException("Ingredient not found: " + id);
+            throw new NotFoundException("Ingredient not found: " + id);
         }
 
-        // re-read the row
         IngredientRecord rec = dsl.fetchOne(INGREDIENT, INGREDIENT.ID.eq(id));
         return new IngredientDTO(
                 rec.getId(),
@@ -79,7 +75,7 @@ public class IngredientService {
                 .where(INGREDIENT.ID.eq(id))
                 .execute();
         if(deleted==0){
-            throw new IllegalArgumentException("Ingredient not found " + id);
+            throw new NotFoundException("Ingredient not found " + id);
         }
     }
     private IngredientDTO toDto(IngredientRecord ingredient) {
