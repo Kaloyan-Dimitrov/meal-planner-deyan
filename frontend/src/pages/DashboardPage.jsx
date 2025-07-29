@@ -63,7 +63,10 @@ export default function DashboardPage() {
       if (!res.ok) throw new Error(data.message || res.status);
       return data;
     } catch (e) {
-      setError(e.message);
+      const msg = e.message.includes("402")
+        ? "⚠️ Spoonacular API quota exceeded. Please try again tomorrow."
+        : e.message;
+      setError(msg);
       return null;
     } finally {
       setLoading(false);
@@ -294,7 +297,7 @@ export default function DashboardPage() {
             {['targetKcal', 'proteinG', 'carbG', 'fatG'].map(k => (
               <div key={k} className="flex items-center mb-2 ">
                 <label className="w-24 capitalize">{k.replace('G', '')}:</label>
-                <input type="number" value={params[k]} onChange={e => setParams(prev => ({ ...prev, [k]: Number(e.target.value) }))} className="border rounded px-2 py-1 flex-grow text-gray-800"/>
+                <input type="number" value={params[k]} onChange={e => setParams(prev => ({ ...prev, [k]: Number(e.target.value) }))} className="border rounded px-2 py-1 flex-grow text-gray-800" />
                 <span className="ml-2">{k === 'targetKcal' ? 'kcal' : 'g'}</span>
               </div>
             ))}
@@ -321,7 +324,7 @@ export default function DashboardPage() {
               return (
                 <div key={key}
                   className={`p-4 rounded-lg shadow flex flex-col justify-items-center
-                      ${over < -5 ? 'bg-red-100 text-red-700'
+                        ${over < -5 ? 'bg-red-100 text-red-700'
                       : over > 5 ? 'bg-green-100 text-green-700'
                         : 'bg-white'}`}>
                   <span className="text-sm capitalize text-gray-800">{key}</span>
