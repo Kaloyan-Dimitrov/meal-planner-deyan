@@ -25,8 +25,16 @@ export default function WeightModal({ open, onClose, userId, authHeader, onSucce
         });
 
         if (!res.ok) {
-            const msg = await res.text();
-            toast.error(msg || 'Error logging weight');
+            let errorMessage = 'Error logging weight';
+            try {
+                const data = await res.clone().json();
+                errorMessage = data.message || errorMessage;
+            } catch (e) {
+                const text = await res.text();
+                if (text) errorMessage = text;
+            }
+
+            toast.error(errorMessage);
             return;
         }
 
@@ -40,7 +48,7 @@ export default function WeightModal({ open, onClose, userId, authHeader, onSucce
 
 
     return (
-         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
             <div className="bg-white dark:bg-gray-800 text-gray-900 dark:text-white p-6 rounded-lg w-full max-w-sm shadow-lg">
                 <h2 className="text-xl font-semibold mb-4">Update Today&rsquo;s Weight</h2>
 

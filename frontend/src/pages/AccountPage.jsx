@@ -24,25 +24,27 @@ function AccountPage() {
     if (!userId) return <p>Not logged in</p>;
 
     useEffect(() => {
-        apiFetch(`/api/users/${userId}`)
-            .then(res => res.json())
-            .then(setUser);
+  (async () => {
+    const res = await apiFetch(`/api/users/${userId}`);
+    if (res.ok) {
+      const user = await res.json();
+      setUser(user);
+    }
 
-        apiFetch(`/api/users/${userId}/weight`)
-            .then(res => res.json())
-            .then(data => {
-                // Format dates for chart
-                const formatted = data.map(d => ({
-                    ...d,
-                    date: formatToDayMonth(d.date), // '07-26' instead of '2025-07-26'
-                }));
-                setWeights(formatted);
-                if (formatted.length > 0) {
-                    const last = formatted[formatted.length - 1];
-                    setCurrentWeight(last.weight);
-                }
-            });
-    }, []);
+    const res2 = await apiFetch(`/api/users/${userId}/weight`);
+    if (res2.ok) {
+      const data = await res2.json();
+      const formatted = data.map(d => ({
+        ...d,
+        date: formatToDayMonth(d.date),
+      }));
+      setWeights(formatted);
+      if (formatted.length > 0) {
+        setCurrentWeight(formatted.at(-1).weight);
+      }
+    }
+  })();
+}, []);
     function formatToDayMonth(isoDate) {
         const [year, month, day] = isoDate.split('T')[0].split('-'); // '2025-07-27T12:00...' → ['2025','07','27']
         return `${day}/${month}`; // → 27/07

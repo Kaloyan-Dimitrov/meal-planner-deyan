@@ -1,6 +1,8 @@
 package com.deyan.mealplanner.service;
 
 import com.deyan.mealplanner.dto.*;
+import com.deyan.mealplanner.exceptions.AlreadyExistsException;
+import com.deyan.mealplanner.exceptions.NotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
 
@@ -14,10 +16,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Set;
 
-import static com.deyan.mealplanner.jooq.tables.Achievement.ACHIEVEMENT;
-import static com.deyan.mealplanner.jooq.tables.UserAchievement.USER_ACHIEVEMENT;
 import static com.deyan.mealplanner.jooq.tables.UserProgress.USER_PROGRESS;
 import static com.deyan.mealplanner.jooq.tables.Users.USERS;
 import static org.jooq.impl.DSL.*;
@@ -76,6 +75,10 @@ public class UserService {
         var userRecord = dsl.selectFrom(USERS)
                 .where(USERS.EMAIL.eq(email))
                 .fetchOne();
+        if(userRecord == null){
+            throw new NotFoundException("User not found with email: " + email);
+        }
+
         var latestProgress = dsl.selectFrom(USER_PROGRESS)
                 .where(USER_PROGRESS.USER_ID.eq(userRecord.getId()))
                 .orderBy(USER_PROGRESS.DATE.desc())
@@ -94,7 +97,7 @@ public class UserService {
     public UserDTO createUser(CreateUserRequest request) {
         boolean emailExists = dsl.fetchExists(dsl.selectFrom(USERS).where(USERS.EMAIL.eq(request.email())));
                 if(emailExists){
-                    throw new IllegalArgumentException("Email already in use");
+                    throw new AlreadyExistsException("Email already in use");
                 }
         dsl.insertInto(USERS)
                 .set(USERS.NAME, request.name())
@@ -108,7 +111,6 @@ public class UserService {
                 .from(USERS)
                 .where(USERS.EMAIL.eq(request.email())) // or any unique field
                 .fetchOne(USERS.ID);
-        System.out.println("Inserting progress for user ID = " + userId);
 
 
         var today = LocalDateTime.now();
@@ -135,7 +137,7 @@ public class UserService {
                 .fetchOne();
 
         if (userRecord == null) {
-            throw new RuntimeException("User not found");
+            throw new NotFoundException("User not found with ID: " + id);
         }
 
         var latestProgress = dsl.selectFrom(USER_PROGRESS)
@@ -166,7 +168,7 @@ public class UserService {
                 .execute();
 
         if (deleted == 0) {
-            throw new RuntimeException("User not found or already deleted");
+            throw new NotFoundException("User not found or already deleted");
         }
     }
     public WeightEntryDTO addUserWeightEntry(Long userId, BigDecimal weight) {
@@ -177,7 +179,7 @@ public class UserService {
         );
 
         if (!exists) {
-            throw new IllegalArgumentException("User not found with ID: " + userId);
+            throw new NotFoundException("User not found with ID: " + userId);
         }
 
         LocalDate today = LocalDate.now();
@@ -191,7 +193,7 @@ public class UserService {
                         .and(USER_PROGRESS.DATE.cast(LocalDate.class).eq(today))
         );
         if(alreadyLoggedToday){
-            throw new IllegalArgumentException("You already logged your weight today.");
+            throw new AlreadyExistsException("You already logged your weight today.");
         }
         // Insert new weight entry
         dsl.insertInto(USER_PROGRESS)
@@ -231,10 +233,7 @@ public class UserService {
                 .set(USERS.DAY_STREAK, newStreak)
                 .where(USERS.ID.eq(userId))
                 .execute();
-        log.info("🚩 addUserWeightEntry(): newStreak = {}", newStreak);
         List<Long> unlocked = achievementService.updateAfterWeightLog(userId, newStreak);
-        log.info("🚩 addUserWeightEntry(): unlocked IDs = {}", unlocked);
-
 
         return new WeightEntryDTO(weight, now,unlocked);
     }

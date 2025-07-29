@@ -48,7 +48,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
             return;
         }
         final String token = authHeader.substring(7);      // strip "Bearer "
-
+        try{
         final String email = jwtUtil.extractEmail(token);  // sub = email
 
         if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
@@ -68,7 +68,9 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                 SecurityContextHolder.getContext().setAuthentication(auth);
             }
         }
-
+        }catch(Exception e){
+            logger.warn("Invalid JWT: {}", e);
+        }
         filterChain.doFilter(request, response);
     }
 }

@@ -19,7 +19,6 @@ public class MealPlanController {
     }
     @PostMapping
     public CreatedDTO createMealPlan(@PathVariable Long userId, @RequestBody CreateReq r){
-        log.debug("CONTROLLER  ⇢  req.targetKcal = {}", r.targetKcal);
         long id = mealPlanService.createPlan(
                 userId,
                 r.targetKcal(), r.proteinG(), r.carbG(), r.fatG(),r.days()!=null ? r.days() : null);

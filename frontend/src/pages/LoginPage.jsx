@@ -10,39 +10,41 @@ function LoginPage() {
   const [error, setError] = useState('');
   const navigate = useNavigate();
   const [rememberMe, setRememberMe] = useState(false);
+
   const handleLogin = async (e) => {
-    e.preventDefault();
-    setError('');
+  e.preventDefault();
+  setError('');
 
-    try {
-      const res = await apiFetch('http://localhost:8080/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password, rememberMe }),
-      });
+  try {
+    const res = await apiFetch('http://localhost:8080/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password, rememberMe }),
+    }, false); // disable auto-refresh retry
 
-      const text = await res.text();
-
-      if (!res.ok) {
-        try {
-          const data = JSON.parse(text);
-          throw new Error(data.message || 'Login failed');
-        } catch {
-          throw new Error(text || 'Login failed');
-        }
+    if (!res.ok) {
+      let errorMessage = 'Login failed';
+      try {
+        const data = await res.json();
+        errorMessage = data.message || errorMessage;
+      } catch (e) {
+        const text = await res.text();
+        if (text) errorMessage = text;
       }
-
-      const { accessToken, refreshToken } = JSON.parse(text);
-        saveTokens({ accessToken, refreshToken });
-
-
-      console.log('✅ Login success, navigating to /dashboard');
-      navigate('/dashboard');
-    } catch (err) {
-      console.error('❌ Login error:', err.message);
-      setError(err.message);
+      throw new Error(errorMessage);
     }
-  };
+
+    const { accessToken, refreshToken } = await res.json();
+    saveTokens({ accessToken, refreshToken });
+    navigate('/dashboard');
+  } catch (err) {
+    console.error('❌ Login error:', err.message);
+    setError(err.message);
+  }
+};
+
+
+
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-peach dark:bg-gray-900 text-gray-800 dark:text-white">

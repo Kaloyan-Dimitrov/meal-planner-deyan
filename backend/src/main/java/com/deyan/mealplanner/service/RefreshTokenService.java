@@ -1,12 +1,11 @@
 package com.deyan.mealplanner.service;
 
+import com.deyan.mealplanner.exceptions.RefreshTokenException;
 import lombok.RequiredArgsConstructor;
 import org.jooq.DSLContext;
 import org.springframework.stereotype.Service;
 
-import java.sql.Timestamp;
 import java.time.Duration;
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.UUID;
@@ -40,10 +39,10 @@ public class RefreshTokenService {
                 .where(REFRESH_TOKEN.TOKEN.eq(token))
                 .fetchOne();
 
-        if (record == null) throw new IllegalArgumentException("Invalid refresh token");
+        if (record == null) throw new RefreshTokenException("Invalid refresh token");
         if (record.getExpiry().isBefore(LocalDateTime.now(ZoneOffset.UTC))) {
             db.deleteFrom(REFRESH_TOKEN).where(REFRESH_TOKEN.ID.eq(record.getId())).execute();
-            throw new IllegalArgumentException("Refresh token expired");
+            throw new RefreshTokenException("Refresh token expired");
         }
         return record.getUserId();
     }

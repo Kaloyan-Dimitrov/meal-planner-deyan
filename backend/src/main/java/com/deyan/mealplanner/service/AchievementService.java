@@ -1,5 +1,6 @@
 package com.deyan.mealplanner.service;
 import com.deyan.mealplanner.dto.AchievementDTO;
+import com.deyan.mealplanner.exceptions.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
@@ -67,21 +68,20 @@ public class AchievementService {
                 unlocked.add(e.getKey());
             }
         }
-        log.debug("Unlocked this call ➜ {}", unlocked);
         return unlocked;
     }
 
     /* ───────────────── private helpers ──────────────────── */
 
     private boolean saveProgress(long userId, long achId, int progress) {
-        log.info("Progress is {}", progress);
-
-        int target = dsl
+        Integer target = dsl
                 .select(ACHIEVEMENT.TARGET)
                 .from(ACHIEVEMENT)
                 .where(ACHIEVEMENT.ID.eq(achId))
                 .fetchOneInto(Integer.class);
-
+        if (target == null) {
+            throw new NotFoundException("Achievement ID " + achId + " does not exist.");
+        }
         // 2️⃣ Fetch the row *before* we change anything
         var rec = dsl
                 .select(USER_ACHIEVEMENT.PROGRESS,
@@ -91,7 +91,6 @@ public class AchievementService {
                         .and(USER_ACHIEVEMENT.ACHIEVEMENT_ID.eq(achId)))
                 .fetchOne();
 
-        int prevProgress   = rec == null ? 0 : rec.get(USER_ACHIEVEMENT.PROGRESS);
         boolean wasLocked  = rec == null || rec.get(USER_ACHIEVEMENT.COMPLETED_AT) == null;
         boolean unlockNow  = wasLocked && progress >= target;   // ← our trigger
 
@@ -112,8 +111,6 @@ public class AchievementService {
                             .and(USER_ACHIEVEMENT.ACHIEVEMENT_ID.eq(achId)))
                     .execute();
         }
-        log.debug("DBG achId={}  prevLocked={}  progress={}  target={}  unlockNow={}",
-                achId, wasLocked, progress, target, unlockNow);
-        return unlockNow;         // true only on the first completion
+        return unlockNow;
     }
 }
