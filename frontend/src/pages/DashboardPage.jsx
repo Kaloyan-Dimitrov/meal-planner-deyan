@@ -234,12 +234,23 @@ export default function DashboardPage() {
 
   /* ---------------- Create & regenerate ---------------- */
   const handleGenerate = async () => {
-    const created = await fetchJson(`/api/users/${userId}/meal-plans`, {
-      method: 'POST',
-      body: JSON.stringify(params),
-    });
-    if (created?.id) setSelectedPlanId(created.id);
-  };
+  const created = await fetchJson(`/api/users/${userId}/meal-plans`, {
+    method: 'POST',
+    body: JSON.stringify(params),
+  });
+
+  if (created?.id) {
+    // Re-fetch the plans list AFTER creating
+    const list = await fetchJson(`/api/users/${userId}/meal-plans`);
+    if (Array.isArray(list)) {
+      setPlans(list);
+      setSelectedPlanId(created.id); // Now it's guaranteed to be present in the list
+    }
+  } else {
+    toast.error("Failed to generate plan.");
+  }
+};
+
   const handleRegenerate = async () => {
     if (!selectedPlanId) return;
     const refreshed = await fetchJson(`/api/users/${userId}/meal-plans/${selectedPlanId}/regenerate`, {
