@@ -10,6 +10,7 @@ import { apiFetch } from '../utils/auth';
 import { toggleTheme } from '../utils/theme';
 import { Menu } from '@headlessui/react';
 import { FaUserCircle, FaSun, FaMoon, FaSignOutAlt, FaTrophy, FaWeight, FaCog } from 'react-icons/fa';
+import ShoppingListModal from '../components/ShoppingListModal';
 
 
 // DashboardPage.jsx – parses backend response shape (meals array, actual macros)
@@ -51,6 +52,8 @@ export default function DashboardPage() {
   const [showWeightModal, setShowWeightModal] = useState(false);
   const [achievements, setAchievements] = useState([]);
   const [showAchModal, setShowAchModal] = useState(false);
+  const [shoppingList, setShoppingList] = useState([]);
+  const [showShoppingModal, setShowShoppingModal] = useState(false);
 
 
   /* ---------------- Helper: fetch JSON with auth ---------------- */
@@ -152,6 +155,54 @@ export default function DashboardPage() {
     );
     console.log('mealPlan →', grouped);
   };
+  const handleShowShoppingList = async () => {
+    if (!selectedPlanId) return;
+    const data = await fetchJson(`/api/users/${userId}/meal-plans/${selectedPlanId}`);
+    if (data?.shoppingList) {
+      setShoppingList(data.shoppingList);
+      setShowShoppingModal(true);
+    } else {
+      toast.error("No shopping list found");
+    }
+  };
+  const handleDeleteCurrentPlan = async () => {
+    if (!selectedPlanId) return;
+
+    const confirmed = window.confirm("Are you sure you want to delete this plan?");
+    if (!confirmed) return;
+
+    try {
+      const res = await apiFetch(`/api/users/${userId}/meal-plans/${selectedPlanId}`, {
+        method: 'DELETE',
+      });
+
+      if (!res.ok) throw new Error("Delete failed");
+
+      // Filter out the deleted plan
+      setSelectedPlanId(null);
+      const updatedPlans = plans.filter(p => p.id !== selectedPlanId);
+      setPlans(updatedPlans);
+
+      if (updatedPlans.length > 0) {
+        // Set new selected plan (first in list)
+        setSelectedPlanId(updatedPlans[0].id);
+      } else {
+        // No plans left, reset everything
+        setSelectedPlanId(null);
+        setMealPlan([]);
+        setMacros({});
+        setLockedTargets(null);
+      }
+
+      toast.success("Plan deleted.");
+    } catch (e) {
+      toast.error("Failed to delete plan.");
+      console.error(e);
+    }
+  };
+
+
+
   const handleLogout = async () => {
     // grab the refresh-token cookie (may be undefined if httpOnly mode)
     const rt = document.cookie
@@ -283,10 +334,17 @@ export default function DashboardPage() {
         {/* Plan selector */}
         <section className="flex items-center space-x-4">
           <label className="flex items-center">
-            <span className="mr-2text-gray-800">Saved Plans:</span>
+            <span className="mr-2 text-gray-800 dark:text-white">Saved Plans:</span>
             <select value={selectedPlanId || ''} onChange={e => setSelectedPlanId(e.target.value)} className="border rounded px-2 py-1 text-gray-800">
               {plans.map(p => <option key={p.id} value={p.id}>{p.name || `Plan ${p.id}`}</option>)}
             </select>
+            <button
+              onClick={handleDeleteCurrentPlan}
+              className={`text-xs px-3 py-1 rounded ml-4 transition
+              ${!selectedPlanId ? 'hidden' : 'bg-red-500 hover:bg-red-600 text-white'}`}
+            >
+              Delete
+            </button>
           </label>
         </section>
 
@@ -302,7 +360,7 @@ export default function DashboardPage() {
               </div>
             ))}
             <p className="text-xs text-gray-500 mt-2">
-              ⚠️&nbsp;Macros targets are for feedback only — SpoonacularAPI may return meal plans that don’t match them exactly.
+              ⚠️&nbsp;Macro targets are for feedback only — SpoonacularAPI may return meal plans that don’t match them exactly.
             </p>
             <div className="flex items-center mt-4">
               <label className="mr-2">Plan Duration:</label>
@@ -337,7 +395,16 @@ export default function DashboardPage() {
 
         {/* Meal plan grid */}
         <section>
-          <h2 className="text-xl font-semibold mb-4">Meal Plan</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold">Meal Plan</h2>
+            <button
+              onClick={handleShowShoppingList}
+              className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded text-sm"
+            >
+              View Shopping List
+            </button>
+          </div>
+
           <div className="overflow-x-auto">
             <table className="min-w-full bg-white dark:bg-gray-800 text-gray-800 dark:text-white rounded-lg shadow">
               <thead>
@@ -406,7 +473,11 @@ export default function DashboardPage() {
         onClose={() => setShowAchModal(false)}
         achievements={achievements}
       />
-
+      <ShoppingListModal
+        open={showShoppingModal}
+        onClose={() => setShowShoppingModal(false)}
+        list={shoppingList}
+      />
     </div >
   );
 }
