@@ -77,16 +77,20 @@ public class MealPlanService {
         int actualCarb = apiPlan.nutrients().carbohydrates().intValue();
         int actualFat = apiPlan.nutrients().fat().intValue();
         // 1) MEAL_PLAN -------------------------------------------------------
-        Long planId = (Long) db.fetchValue(
-                "insert into meal_plan (" +
-                        "   user_id, " +
-                        "   target_kcal, target_protein_g, target_carb_g, target_fat_g, " +
-                        "   actual_kcal, actual_protein_g, actual_carb_g, actual_fat_g " +
-                        ") values (?, ?, ?, ?, ?, ?, ?, ?, ?) returning id",
-                userId,
-                targetCalories,      protein, carb,      fats,    // targets
-                actualKcal,      actualProtein, actualCarb,      actualFat     // actuals
-        );
+        Long planId = db.insertInto(MEAL_PLAN)
+                .set(MEAL_PLAN.USER_ID, userId)
+                .set(MEAL_PLAN.TARGET_KCAL, targetCalories)
+                .set(MEAL_PLAN.TARGET_PROTEIN_G, protein)
+                .set(MEAL_PLAN.TARGET_CARB_G, carb)
+                .set(MEAL_PLAN.TARGET_FAT_G, fats)
+                .set(MEAL_PLAN.ACTUAL_KCAL, actualKcal)
+                .set(MEAL_PLAN.ACTUAL_PROTEIN_G, actualProtein)
+                .set(MEAL_PLAN.ACTUAL_CARB_G, actualCarb)
+                .set(MEAL_PLAN.ACTUAL_FAT_G, actualFat)
+                .returning(MEAL_PLAN.ID)
+                .fetchOne(MEAL_PLAN.ID);
+
+
         long kcalDelta  = Math.abs(actualKcal    - targetCalories);
         long protDelta  = Math.abs(actualProtein - protein);
         long carbDelta  = Math.abs(actualCarb    - carb);
