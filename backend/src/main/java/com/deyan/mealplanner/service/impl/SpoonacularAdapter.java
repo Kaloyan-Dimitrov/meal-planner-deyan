@@ -6,6 +6,7 @@ import com.deyan.mealplanner.service.interfaces.RecipeAPIAdapter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
@@ -130,7 +131,9 @@ public class SpoonacularAdapter implements RecipeAPIAdapter {
        ==========  R E C I P E   D E T A I L S  ==========
        -------------------------------------------------------------------------*/
     @Override
+    @Cacheable(cacheNames = "recipes", key = "'recipe:' + #id")
     public RecipeDetailsDTO getRecipe(Long id) {
+        log.info("⏩ Cache MISS → calling Spoonacular for recipe {}", id);
         try {
             RecipeDetailsDTO dto = web.get()
                     .uri(INFO_ENDPOINT, id, apiKey)

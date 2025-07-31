@@ -115,18 +115,14 @@ public class UserService {
 
         var today = LocalDateTime.now();
 
-        dsl.insertInto(USER_PROGRESS)
-                .set(USER_PROGRESS.USER_ID, userId)
-                .set(USER_PROGRESS.WEIGHT, request.weight())
-                .set(USER_PROGRESS.DATE, today)
-                .execute();
+        addUserWeightEntry(userId, request.weight());
 
         return new UserDTO(
                 userId,
                 request.name(),
                 request.email(),
                 request.weight(),
-                0,
+                1,
                 today
         );
     }

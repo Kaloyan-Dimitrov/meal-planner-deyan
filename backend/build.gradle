@@ -42,6 +42,8 @@ dependencies {
 
 	jooqGenerator 'org.postgresql:postgresql:42.7.1'
 
+	//Redis Cache
+	implementation 'org.springframework.boot:spring-boot-starter-data-redis'
 
 	testImplementation 'org.testcontainers:junit-jupiter:1.19.8'
 	testImplementation 'org.flywaydb:flyway-core'          // migrations inside tests
