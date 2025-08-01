@@ -25,7 +25,7 @@ function RegisterPage() {
             if (!res.ok) {
                 let errorMessage = 'Registration failed';
                 try {
-                    const data = await res.clone().json(); // clone to avoid stream exhaustion
+                    const data = await res.clone().json();
                     errorMessage = data.message || errorMessage;
                 } catch (e) {
                     const text = await res.text();

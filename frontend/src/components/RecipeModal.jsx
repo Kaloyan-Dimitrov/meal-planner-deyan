@@ -11,7 +11,6 @@ function RecipeModal({ recipe, onClose }) {
         className="relative bg-white dark:bg-gray-800 text-gray-800 dark:text-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Close button */}
         <button
           className="absolute top-3 right-3 text-gray-500 dark:text-gray-300 hover:text-black dark:hover:text-white text-xl"
           onClick={onClose}

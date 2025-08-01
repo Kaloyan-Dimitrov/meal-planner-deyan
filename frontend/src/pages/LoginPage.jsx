@@ -20,7 +20,7 @@ function LoginPage() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password, rememberMe }),
-    }, false); // disable auto-refresh retry
+    }, false);
 
     if (!res.ok) {
       let errorMessage = 'Login failed';
@@ -50,7 +50,6 @@ function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-peach dark:bg-gray-900 text-gray-800 dark:text-white">
       <div className="relative bg-white dark:bg-gray-800 p-8 rounded-lg shadow-md w-full max-w-md">
 
-        {/* Top-left link */}
         <button
           type="button"
           onClick={() => navigate('/')}

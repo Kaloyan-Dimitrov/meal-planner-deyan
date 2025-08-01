@@ -12,10 +12,10 @@ function isValidJwt(token) {
 function isTokenExpired(token) {
   try {
     const { exp } = jwtDecode(token);
-    return exp * 1000 < Date.now(); // true = expired
+    return exp * 1000 < Date.now();
   } catch (e) {
     console.error('Failed to decode token:', e.message);
-    return true; // treat as expired
+    return true;
   }
 }
 
@@ -38,7 +38,7 @@ function PrivateRoute({ children }) {
     return <Navigate to="/login" replace />;
   }
 
-  hasShownToast = false; // reset when access is valid
+  hasShownToast = false;
   return children
 }
 

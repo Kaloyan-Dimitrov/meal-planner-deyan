@@ -46,8 +46,8 @@ function AccountPage() {
   })();
 }, []);
     function formatToDayMonth(isoDate) {
-        const [year, month, day] = isoDate.split('T')[0].split('-'); // '2025-07-27T12:00...' → ['2025','07','27']
-        return `${day}/${month}`; // → 27/07
+        const [year, month, day] = isoDate.split('T')[0].split('-');
+        return `${day}/${month}`;
     }
 
     return (

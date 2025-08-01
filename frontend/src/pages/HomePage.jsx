@@ -69,7 +69,6 @@ function HomePage() {
         </div>
       </div>
 
-      {/* Why Use the App */}
       <section className="mt-16 bg-white dark:bg-gray-800 p-8 rounded-lg shadow-md max-w-4xl mx-auto text-center">
         <h2 className="text-2xl font-bold mb-4 text-green-700 dark:text-green-400">Why use Meal Planner AI?</h2>
         <ul className="list-disc text-left list-inside text-gray-700 dark:text-gray-300 space-y-2">

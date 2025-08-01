@@ -1,15 +1,7 @@
 import { useState } from 'react';
 import { toast } from 'react-toastify';
 import { apiFetch } from '../utils/auth';
-/**
- * Props
- * ─────────────────────────────────────────────
- * open        boolean  – show / hide modal
- * onClose     () => void
- * userId      number
- * authHeader  object   – { Authorization: 'Bearer …' }
- * onSuccess   (WeightEntryDTO) => void   // optional callback
- */
+
 export default function WeightModal({ open, onClose, userId, authHeader, onSuccess }) {
     const [weight, setWeight] = useState('');
 

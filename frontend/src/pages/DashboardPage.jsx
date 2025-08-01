@@ -8,12 +8,11 @@ import { toast } from 'react-toastify';
 import { clearTokens } from '../utils/auth';
 import { apiFetch } from '../utils/auth';
 import { toggleTheme } from '../utils/theme';
-import { Menu } from '@headlessui/react';
+import { Menu,MenuButton,MenuItems,MenuItem } from '@headlessui/react';
 import { FaUserCircle, FaSun, FaMoon, FaSignOutAlt, FaTrophy, FaWeight, FaCog } from 'react-icons/fa';
 import ShoppingListModal from '../components/ShoppingListModal';
 
 
-// DashboardPage.jsx – parses backend response shape (meals array, actual macros)
 export default function DashboardPage() {
   const navigate = useNavigate();
 
@@ -34,12 +33,12 @@ export default function DashboardPage() {
     return <Navigate to="/login" replace />;
   }
 
-  /* ---------------- Static options ---------------- */
+  //Static variables
   const planLengths = [1, 7];
   const slots = ['Breakfast', 'Lunch', 'Dinner'];
   const slotLabel = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 
-  /* ---------------- State ---------------- */
+ //State variables
   const [plans, setPlans] = useState([]);
   const [selectedPlanId, setSelectedPlanId] = useState(null);
   const [macros, setMacros] = useState({});
@@ -100,10 +99,9 @@ export default function DashboardPage() {
         if (list.length) setSelectedPlanId(list[0].id);
       }
     })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => { loadAchievements(); /* eslint-disable-next-line */ }, []);
+  useEffect(() => { loadAchievements();}, []);
   /* ---------------- Parse plan details ---------------- */
   const parsePlanDetails = (data) => {
     if (!data) return;
@@ -131,7 +129,6 @@ export default function DashboardPage() {
       days: (data.meals ? new Set(data.meals.map(m => m.day)).size : prev.days) || prev.days
     }));
 
-    /* group meals by day & slot – backend day is 0‑based */
     const grouped = {};
 
     (data.meals ?? []).forEach(({ day, mealSlot, recipe }) => {
@@ -153,8 +150,8 @@ export default function DashboardPage() {
     setMealPlan(
       Object.values(grouped).sort((a, b) => a.day - b.day)
     );
-    console.log('mealPlan →', grouped);
   };
+
   const handleShowShoppingList = async () => {
     if (!selectedPlanId) return;
     const data = await fetchJson(`/api/users/${userId}/meal-plans/${selectedPlanId}`);
@@ -187,7 +184,6 @@ export default function DashboardPage() {
         const newSelectedId = updatedPlans[0].id;
         setSelectedPlanId(newSelectedId);
       } else {
-        // No plans left
         setSelectedPlanId(null);
         setMealPlan([]);
         setMacros({});
@@ -203,12 +199,9 @@ export default function DashboardPage() {
 
 
   const handleLogout = async () => {
-    // grab the refresh-token cookie (may be undefined if httpOnly mode)
     const rt = document.cookie
       .split('; ')
       .find(c => c.startsWith('rt='))?.split('=')[1];
-
-    // tell the backend to invalidate it (safe even if rt === undefined)
     try {
       await apiFetch('/auth/logout', {
         method: 'POST',
@@ -219,9 +212,10 @@ export default function DashboardPage() {
       console.warn('Logout call failed:', e);
     }
 
-    clearTokens();           // wipes localStorage + cookie
-    navigate('/login');      // send user to login page
+    clearTokens();
+    navigate('/login');
   };
+
   /* ---------------- Load selected plan details ---------------- */
   useEffect(() => {
     if (!selectedPlanId) return;
@@ -231,7 +225,7 @@ export default function DashboardPage() {
     })();
   }, [selectedPlanId]);
 
-  /* ---------------- Create & regenerate ---------------- */
+  /* ---------------- Create ---------------- */
   const handleGenerate = async () => {
     const created = await fetchJson(`/api/users/${userId}/meal-plans`, {
       method: 'POST',
@@ -243,13 +237,13 @@ export default function DashboardPage() {
       const list = await fetchJson(`/api/users/${userId}/meal-plans`);
       if (Array.isArray(list)) {
         setPlans(list);
-        setSelectedPlanId(created.id); // Now it's guaranteed to be present in the list
+        setSelectedPlanId(created.id);
       }
     } else {
       toast.error("Failed to generate plan.");
     }
   };
-
+  /* ---------------- Regenerate ---------------- */
   const handleRegenerate = async () => {
     if (!selectedPlanId) return;
 
@@ -273,14 +267,14 @@ export default function DashboardPage() {
           <h1 className="text-2xl font-bold text-gray-800">My Dashboard</h1>
         </div>
         <Menu as="div" className="relative inline-block text-left">
-          <Menu.Button className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
+          <MenuButton className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
             <FaUserCircle />
             <span>Account</span>
-          </Menu.Button>
+          </MenuButton>
 
-          <Menu.Items className="absolute right-0 mt-2 w-56 origin-top-right bg-white dark:bg-gray-800 divide-y divide-gray-100 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
+          <MenuItems className="absolute right-0 mt-2 w-56 origin-top-right bg-white dark:bg-gray-800 divide-y divide-gray-100 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none z-50">
             <div className="px-1 py-1">
-              <Menu.Item>
+              <MenuItem>
                 {({ active }) => (
                   <button
                     onClick={() => setShowAchModal(true)}
@@ -290,8 +284,8 @@ export default function DashboardPage() {
                     <FaTrophy className="mr-2" /> Achievements
                   </button>
                 )}
-              </Menu.Item>
-              <Menu.Item>
+              </MenuItem>
+              <MenuItem>
                 {({ active }) => (
                   <button
                     onClick={() => setShowWeightModal(true)}
@@ -301,8 +295,8 @@ export default function DashboardPage() {
                     <FaWeight className="mr-2" /> Log Weight
                   </button>
                 )}
-              </Menu.Item>
-              <Menu.Item>
+              </MenuItem>
+              <MenuItem>
                 {({ active }) => (
                   <button
                     onClick={() => navigate("/account")}
@@ -312,8 +306,8 @@ export default function DashboardPage() {
                     <FaCog className="mr-2" /> Account Settings
                   </button>
                 )}
-              </Menu.Item>
-              <Menu.Item>
+              </MenuItem>
+              <MenuItem>
                 {({ active }) => (
                   <button
                     onClick={toggleTheme}
@@ -325,8 +319,8 @@ export default function DashboardPage() {
                     Toggle Theme
                   </button>
                 )}
-              </Menu.Item>
-              <Menu.Item>
+              </MenuItem>
+              <MenuItem>
                 {({ active }) => (
                   <button
                     onClick={handleLogout}
@@ -336,9 +330,9 @@ export default function DashboardPage() {
                     <FaSignOutAlt className="mr-2" /> Logout
                   </button>
                 )}
-              </Menu.Item>
+              </MenuItem>
             </div>
-          </Menu.Items>
+          </MenuItems>
         </Menu>
 
       </header >
@@ -391,7 +385,6 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Macro summary */}
           <div className="grid grid-cols-2 grid-rows-2 gap-4 ">
             {['calories', 'protein', 'carbs', 'fat'].map(key => {
               const targetValue = lockedTargets?.[key === 'calories' ? 'targetKcal' : key === 'protein' ? 'proteinG' : key === 'carbs' ? 'carbG' : 'fatG'];
@@ -410,7 +403,6 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        {/* Meal plan grid */}
         <section>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xl font-semibold">Meal Plan</h2>
