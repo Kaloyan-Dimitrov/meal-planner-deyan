@@ -11,9 +11,17 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/recipes")
 public class RecipeController {
     private final RecipeService recipeService;
+
     public RecipeController(RecipeService recipeService) {
         this.recipeService = recipeService;
     }
+
+    /**
+     * Retrieves detailed information about a recipe by its ID.
+     *
+     * @param id The ID of the recipe.
+     * @return A {@link RecipeDetailsDTO} containing full recipe data.
+     */
     @GetMapping("/{id}")
     public RecipeDetailsDTO getRecipeById(@PathVariable Long id) {
         return recipeService.getRecipeDetailsById(id);

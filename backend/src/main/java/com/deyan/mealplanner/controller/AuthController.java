@@ -25,7 +25,13 @@ public class AuthController {
     private final UserService userService;
     private final RefreshTokenService rtService;
 
-    /* ---------- LOGIN ---------- */
+    /**
+     * Authenticates a user using their email and password, and returns JWT access and refresh tokens.
+     *
+     * @param req The login request containing email, password, and remember-me flag.
+     * @return A response containing the access token and refresh token.
+     * @throws BadCredentialsException if the credentials are invalid.
+     */
     @PostMapping("/login")
     public ResponseEntity<AuthTokenDTO> login(@RequestBody AuthRequest req) {
 
@@ -45,7 +51,12 @@ public class AuthController {
         return ResponseEntity.ok(new AuthTokenDTO(access, refresh));
     }
 
-    /* ---------- REGISTER ---------- */
+    /**
+     * Registers a new user with the provided information and returns an access and refresh token.
+     *
+     * @param req The registration request containing user data.
+     * @return A response containing the access token and refresh token for the new user.
+     */
     @PostMapping("/register")
     public ResponseEntity<AuthTokenDTO> register(@RequestBody CreateUserRequest req) {
 
@@ -57,7 +68,12 @@ public class AuthController {
         return ResponseEntity.ok(new AuthTokenDTO(access, refresh));
     }
 
-    /* ---------- REFRESH ---------- */
+    /**
+     * Refreshes the JWT access token using a valid refresh token.
+     *
+     * @param body The request containing a valid refresh token.
+     * @return A response with a new access token. No new refresh token is issued.
+     */
     @PostMapping("/refresh")
     public ResponseEntity<AuthTokenDTO> refresh(@RequestBody RefreshTokenDTO body) {
         Long userId = rtService.verifyAndGetUserId(body.refreshToken());
@@ -68,7 +84,12 @@ public class AuthController {
         return ResponseEntity.ok(new AuthTokenDTO(access, null)); // no new refresh token
     }
 
-    /* ---------- LOGOUT ---------- */
+    /**
+     * Logs the user out by invalidating the given refresh token.
+     *
+     * @param body The request containing the refresh token to invalidate.
+     * @return HTTP 200 OK response if successful.
+     */
     @PostMapping("/logout")
     public ResponseEntity<Void> logout(@RequestBody RefreshTokenDTO body) {
         rtService.invalidate(body.refreshToken());

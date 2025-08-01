@@ -14,11 +14,26 @@ import static com.deyan.mealplanner.jooq.tables.RecipeIngredient.RECIPE_INGREDIE
 
 @Service
 public class RecipeService {
+
     private final DSLContext dsl;
+
+    /**
+     * Constructs the service with a JOOQ DSL context.
+     *
+     * @param dsl The JOOQ {@link DSLContext} used for querying.
+     */
     public RecipeService(DSLContext dsl) {
         this.dsl = dsl;
     }
-    public RecipeDetailsDTO getRecipeDetailsById(Long recipeId){
+
+    /**
+     * Retrieves a full recipe by its ID, including ingredients and optional nutrition.
+     *
+     * @param recipeId The ID of the recipe to fetch.
+     * @return A {@link RecipeDetailsDTO} object with detailed data.
+     * @throws NotFoundException If the recipe does not exist.
+     */
+    public RecipeDetailsDTO getRecipeDetailsById(Long recipeId) {
         RecipeRecord recipe = dsl.selectFrom(RECIPE)
                 .where(RECIPE.ID.eq(recipeId))
                 .fetchOne();
@@ -27,15 +42,13 @@ public class RecipeService {
             throw new NotFoundException("Recipe not found with ID: " + recipeId);
         }
 
-        // Fetch ingredients
         List<RecipeDetailsDTO.ExtendedIngredient> ingredients = dsl
                 .select(RECIPE_INGREDIENT.INGREDIENT_ID,
                         INGREDIENT.NAME,
                         RECIPE_INGREDIENT.QUANTITY_G,
                         RECIPE_INGREDIENT.UNIT)
                 .from(RECIPE_INGREDIENT)
-                .join(INGREDIENT)
-                .on(RECIPE_INGREDIENT.INGREDIENT_ID.eq(INGREDIENT.ID))
+                .join(INGREDIENT).on(RECIPE_INGREDIENT.INGREDIENT_ID.eq(INGREDIENT.ID))
                 .where(RECIPE_INGREDIENT.RECIPE_ID.eq(recipeId))
                 .fetch()
                 .map(r -> new RecipeDetailsDTO.ExtendedIngredient(
@@ -44,21 +57,22 @@ public class RecipeService {
                         r.get(RECIPE_INGREDIENT.QUANTITY_G),
                         r.get(RECIPE_INGREDIENT.UNIT)
                 ));
+
         RecipeDetailsDTO.Nutrition nutrition = new RecipeDetailsDTO.Nutrition(
                 recipe.getCalories(),
                 recipe.getProtein(),
                 recipe.getFat(),
                 recipe.getCarbohydrates()
         );
+
         return new RecipeDetailsDTO(
                 recipe.getId(),
                 recipe.getName(),
                 recipe.getPrepTime(),
                 recipe.getServings(),
-                nutrition, // optional: compute nutrition later
+                nutrition,
                 ingredients,
                 recipe.getUrl()
         );
     }
-
 }

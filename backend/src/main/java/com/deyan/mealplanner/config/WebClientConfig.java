@@ -16,16 +16,32 @@ import java.util.Map;
 @Profile("!test")
 public class WebClientConfig {
 
+    /**
+     * Creates and configures a WebClient bean for communicating with the Spoonacular API.
+     * Sets the base URL and default headers including JSON content type.
+     * The API key is passed as a URI variable for convenience when building dynamic URLs.
+     *
+     * @param baseUrl The base URL of the Spoonacular API, injected from application properties.
+     * @param apiKey The API key for authenticating with Spoonacular, also injected from properties.
+     * @return A configured WebClient instance for making requests to Spoonacular.
+     */
     @Bean
     public WebClient spoonacularWebClient(@Value("${spoonacular.base-url}") String baseUrl,
                                           @Value("${spoonacular.key}")      String apiKey) {
         return WebClient.builder()
                 .baseUrl(baseUrl)
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                // {apiKey} can be used in every URI you build later
                 .defaultUriVariables(Map.of("apiKey", apiKey))
                 .build();
     }
+    /**
+     * Verifies connectivity to the Spoonacular API during application startup.
+     * Makes a test request for one random recipe to validate the base URL and API key.
+     * Logs a warning if the request fails but does not block the application from starting.
+     *
+     * @param spoonacularWebClient The injected WebClient used for the ping request.
+     * @return A {@link CommandLineRunner} that runs once on startup.
+     */
 
     @Bean
     CommandLineRunner pingSpoonacular(WebClient spoonacularWebClient) {

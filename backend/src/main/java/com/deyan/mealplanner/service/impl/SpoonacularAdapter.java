@@ -23,74 +23,72 @@ import java.util.*;
 @RequiredArgsConstructor
 @Profile("!test")
 public class SpoonacularAdapter implements RecipeAPIAdapter {
+
     private final WebClient web;
 
-    @Value("${spoonacular.key}")      // injected from .env → application.properties
+    @Value("${spoonacular.key}")
     private String apiKey;
 
-    /* ---------------------------------------------------------------------------
-       ENDPOINT TEMPLATES
-       -------------------------------------------------------------------------*/
-    private static final String PLAN_ENDPOINT  = "/mealplanner/generate";
-    private static final String INFO_ENDPOINT  =
+    private static final String PLAN_ENDPOINT = "/mealplanner/generate";
+    private static final String INFO_ENDPOINT =
             "/recipes/{id}/information?includeNutrition=true&apiKey={key}";
 
-    /* ---------------------------------------------------------------------------
-       ==========  D A Y / W E E K   P L A N   G E N E R A T I O N  ==========
-       -------------------------------------------------------------------------*/
+    /**
+     * Generates a meal plan for either 1 day or a week using the Spoonacular API.
+     * For single-day plans, calories are optionally targeted.
+     * For multi-day plans, it averages daily nutrients across the requested days.
+     *
+     * @param targetKcal The desired daily calorie target (optional, used only for 1-day plans).
+     * @param days Number of days to generate the plan for (1 or more).
+     * @return A {@link MealPlanDTO} containing meals and nutrient summaries.
+     * @throws ExternalApiQuotaException If the API quota is exceeded or an error occurs.
+     */
     @Override
     public MealPlanDTO generateMealPlan(Integer targetKcal, int days) {
-        log.debug("ADAPTER IN   ⇢  kcal = {}", targetKcal);
+        log.debug("ADAPTER IN ⇢ kcal = {}", targetKcal);
         String frame = (days == 1) ? "day" : "week";
 
         try {
-            if(frame.equals("day")) {
+            if (frame.equals("day")) {
                 MealPlanDTO dto = web.get()
                         .uri(uri -> uri.path(PLAN_ENDPOINT)
                                 .queryParam("timeFrame", frame)
-                                .queryParam("apiKey",   apiKey)
+                                .queryParam("apiKey", apiKey)
                                 .queryParamIfPresent("targetCalories",
-                                        frame.equals("day")
-                                                ? Optional.ofNullable(targetKcal)
-                                                : Optional.empty())
+                                        Optional.ofNullable(targetKcal))
                                 .build())
                         .retrieve()
                         .bodyToMono(MealPlanDTO.class)
                         .block();
 
                 if (dto == null || dto.meals() == null) {
-                    throw new IllegalStateException("Spoonacular returned no meals " +
-                            "for frame=" + frame + ", kcal=" + targetKcal);
+                    throw new IllegalStateException("Spoonacular returned no meals");
                 }
-
-                log.info("Spoonacular {} {}kcal → {} meals",
-                        frame, targetKcal == null ? "?" : targetKcal,
-                        dto.meals().size());
 
                 return dto;
             }
 
+            // For week plans
             WeeklyMealPlanDTO raw = web.get()
                     .uri(u -> u.path(PLAN_ENDPOINT)
                             .queryParam("timeFrame", "week")
-                            .queryParam("apiKey",    apiKey)
+                            .queryParam("apiKey", apiKey)
                             .build())
                     .retrieve()
                     .bodyToMono(WeeklyMealPlanDTO.class)
                     .block();
 
-            if(raw==null || raw.week()==null ||  raw.week().isEmpty()){
+            if (raw == null || raw.week() == null || raw.week().isEmpty()) {
                 throw new IllegalStateException("Spoonacular returned no week-plan");
             }
+
             List<MealPlanDTO.Meal> meals = new ArrayList<>();
-            int kcal = 0;
-            int protein = 0;
-            int carb = 0;
-            int fat = 0;
+            int kcal = 0, protein = 0, carb = 0, fat = 0;
             Long index = 0L;
-            int dayCounter=0;
+            int dayCounter = 0;
+
             for (WeeklyMealPlanDTO.Day d : raw.week().values()) {
-                if (dayCounter == days) break;   // ← stop when we've hit the requested days
+                if (dayCounter == days) break;
                 dayCounter++;
 
                 kcal += d.nutrients().calories().intValue();
@@ -104,56 +102,68 @@ public class SpoonacularAdapter implements RecipeAPIAdapter {
                             m.readyInMinutes(), m.servings(), m.sourceUrl()));
                 }
             }
-            int perDayKcal    = kcal    / dayCounter;
-            int perDayProtein = protein / dayCounter;
-            int perDayCarb    = carb    / dayCounter;
-            int perDayFat     = fat     / dayCounter;
 
+            int perDayKcal = kcal / dayCounter;
+            int perDayProtein = protein / dayCounter;
+            int perDayCarb = carb / dayCounter;
+            int perDayFat = fat / dayCounter;
 
             return new MealPlanDTO(
-                        meals,
-                        new MealPlanDTO.Nutrients(BigDecimal.valueOf(perDayKcal), (BigDecimal.valueOf(perDayProtein))
-                                , (BigDecimal.valueOf(perDayFat)), (BigDecimal.valueOf(perDayCarb))));
+                    meals,
+                    new MealPlanDTO.Nutrients(
+                            BigDecimal.valueOf(perDayKcal),
+                            BigDecimal.valueOf(perDayProtein),
+                            BigDecimal.valueOf(perDayFat),
+                            BigDecimal.valueOf(perDayCarb)
+                    )
+            );
 
         } catch (WebClientResponseException e) {
-            // helpful diagnostics in the log
             if (e.getStatusCode() == HttpStatus.TOO_MANY_REQUESTS) {
-                log.error("Spoonacular daily quota exhausted (429).");
                 throw new ExternalApiQuotaException("Spoonacular daily quota exhausted (429)");
             } else {
-                log.error("Spoonacular error {} – {}", e.getStatusCode(), e.getResponseBodyAsString());
                 throw new ExternalApiQuotaException("Spoonacular error " + e.getStatusCode() + " " + e.getMessage());
             }
         }
     }
 
-    /* ---------------------------------------------------------------------------
-       ==========  R E C I P E   D E T A I L S  ==========
-       -------------------------------------------------------------------------*/
+    /**
+     * Fetches detailed recipe information including nutrition from Spoonacular.
+     * Uses caching to avoid repeat requests for the same recipe ID.
+     *
+     * @param id The ID of the recipe.
+     * @return The full {@link RecipeDetailsDTO}.
+     * @throws ExternalApiQuotaException if quota is exceeded or access is denied.
+     */
     @Override
     @Cacheable(cacheNames = "recipes", key = "'recipe:' + #id")
     public RecipeDetailsDTO getRecipe(Long id) {
         log.info("⏩ Cache MISS → calling Spoonacular for recipe {}", id);
         try {
-            RecipeDetailsDTO dto = web.get()
+            return web.get()
                     .uri(INFO_ENDPOINT, id, apiKey)
                     .retrieve()
-                    .onStatus(HttpStatusCode::is4xxClientError, res -> res.bodyToMono(String.class).flatMap(msg -> {
-                        log.warn("❌ Spoonacular 4xx: {}", msg);
-                        return Mono.error(new ExternalApiQuotaException("Spoonacular quota exceeded or access denied"));
-                    }))
-                    .onStatus(HttpStatusCode::is5xxServerError, res -> Mono.error(new RuntimeException("Spoonacular server error")))
+                    .onStatus(HttpStatusCode::is4xxClientError, res ->
+                            res.bodyToMono(String.class).flatMap(msg -> {
+                                log.warn("❌ Spoonacular 4xx: {}", msg);
+                                return Mono.error(new ExternalApiQuotaException("Spoonacular quota exceeded or access denied"));
+                            }))
+                    .onStatus(HttpStatusCode::is5xxServerError, res ->
+                            Mono.error(new RuntimeException("Spoonacular server error")))
                     .bodyToMono(RecipeDetailsDTO.class)
                     .doOnNext(r -> log.debug("Recipe {} → title={}, url={}", id, r.title(), r.sourceUrl()))
                     .block();
-
-            return dto;
-
         } catch (Exception ex) {
-
             throw ex;
         }
     }
+
+    /**
+     * Optionally fetches raw nutrition widget data from Spoonacular for a recipe.
+     *
+     * @param id The recipe ID.
+     * @return An optional {@link NutritionResponse} if available.
+     */
     public Optional<NutritionResponse> fetchNutritionWidget(Long id) {
         String url = String.format("/recipes/%d/nutritionWidget.json?apiKey=%s", id, apiKey);
 
@@ -164,9 +174,7 @@ public class SpoonacularAdapter implements RecipeAPIAdapter {
                     .bodyToMono(NutritionResponse.class)
                     .block());
         } catch (Exception e) {
-            log.warn("Failed to fetch nutritionWidget for id={}", id, e);
             return Optional.empty();
         }
     }
-
 }

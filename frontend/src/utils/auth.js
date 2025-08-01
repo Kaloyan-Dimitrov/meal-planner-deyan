@@ -1,4 +1,3 @@
-import { toast } from "react-toastify";
 export function saveTokens({ accessToken, refreshToken }) {
   localStorage.setItem('jwt', accessToken);
   document.cookie = `rt=${refreshToken}; Secure; SameSite=Strict; path=/`;
@@ -9,7 +8,6 @@ export function clearTokens() {
   document.cookie = 'rt=; Max-Age=0; path=/';
 }
 
-/* universal fetch wrapper with auto-refresh */
 export async function apiFetch(url, options = {}, retry = true) {
   const token = localStorage.getItem('jwt');
 
@@ -39,8 +37,7 @@ export async function apiFetch(url, options = {}, retry = true) {
     return apiFetch(url, options, false);
   }
 
-  return res; // no error thrown here, only returned
-
+  return res;
   function forceLogout() {
     clearTokens();
     window.location.href = '/login';

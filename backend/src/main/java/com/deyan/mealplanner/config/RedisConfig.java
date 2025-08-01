@@ -14,7 +14,14 @@ import org.springframework.data.redis.serializer.*;
 @EnableCaching
 public class RedisConfig {
 
-    /** Human-readable JSON values. */
+    /**
+     * Configures the {@link RedisTemplate} used to interact with Redis directly.
+     * Uses string keys and JSON-serialized values to allow easy human-readable inspection
+     * and flexible value storage.
+     *
+     * @param cf The Redis connection factory (typically autoconfigured).
+     * @return A configured {@link RedisTemplate} with string and JSON serializers.
+     */
     @Bean
     public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory cf) {
         RedisTemplate<String, Object> tpl = new RedisTemplate<>();
@@ -29,7 +36,14 @@ public class RedisConfig {
         return tpl;
     }
 
-    /** Cache manager with a default TTL of 24 h on cache “recipes”. */
+    /**
+     * Defines the {@link CacheManager} that Spring uses for caching operations.
+     * This version sets a time-to-live (TTL) of 24 hours for the "recipes" cache
+     * and uses JSON serialization for values.
+     *
+     * @param cf The Redis connection factory.
+     * @return Configured {@link CacheManager} with per-cache settings.
+     */
     @Bean
     public CacheManager cacheManager(RedisConnectionFactory cf) {
         RedisCacheConfiguration cfg = RedisCacheConfiguration.defaultCacheConfig()
