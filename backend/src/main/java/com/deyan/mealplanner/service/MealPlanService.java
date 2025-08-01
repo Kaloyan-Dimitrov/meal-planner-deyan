@@ -136,7 +136,6 @@ public class MealPlanService {
         db.insertInto(RECIPE)
                 .set(RECIPE.ID,                     r.id())
                 .set(RECIPE.NAME,                   r.title())
-                .set(RECIPE.DESCRIPTION,            (String) null)          // fill later if you like
                 .set(RECIPE.PREP_TIME,              r.readyInMinutes())
                 .set(RECIPE.SERVINGS,               r.servings())
                 .set(RECIPE.URL, r.sourceUrl() != null ? r.sourceUrl() : "")
