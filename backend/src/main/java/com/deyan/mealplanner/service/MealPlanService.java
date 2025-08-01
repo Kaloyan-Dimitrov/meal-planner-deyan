@@ -52,6 +52,17 @@ public class MealPlanService {
         this.external = external;
         this.db = dsl;
     }
+    /**
+     * Creates a new meal plan for a user by calling the external API and persisting the result.
+     *
+     * @param userId     The ID of the user.
+     * @param targetKcal Target daily calories (nullable).
+     * @param p          Target protein in grams (nullable).
+     * @param c          Target carbs in grams (nullable).
+     * @param f          Target fat in grams (nullable).
+     * @param days       Number of days (1 or 7).
+     * @return The ID of the created meal plan.
+     */
     public long createPlan(long userId,
                            Integer targetKcal,
                            Integer p, Integer c, Integer f,
@@ -59,7 +70,6 @@ public class MealPlanService {
         if(days != 1 && days!=7){
             throw new BadRequestException("Days must be 1 or 7");
         }
-        log.debug("SERVICE     ⇢  targetKcal = {}", targetKcal);
         MealPlanDTO apiPlan = external.generateMealPlan(targetKcal, days);
         if (apiPlan.meals() == null || apiPlan.meals().isEmpty()) {
             throw new ExternalApiQuotaException(
@@ -76,7 +86,7 @@ public class MealPlanService {
         int actualProtein = apiPlan.nutrients().protein().intValue();
         int actualCarb = apiPlan.nutrients().carbohydrates().intValue();
         int actualFat = apiPlan.nutrients().fat().intValue();
-        // 1) MEAL_PLAN -------------------------------------------------------
+
         Long planId = db.insertInto(MEAL_PLAN)
                 .set(MEAL_PLAN.USER_ID, userId)
                 .set(MEAL_PLAN.TARGET_KCAL, targetCalories)
@@ -106,7 +116,6 @@ public class MealPlanService {
         }
 
 
-        // 2) loop meals ------------------------------------------------------
         int idx = 0;
         for (MealPlanDTO.Meal m : apiPlan.meals()) {
 
@@ -129,9 +138,11 @@ public class MealPlanService {
         buildShoppingList(planId);
         return planId;
     }
-
-    /* ---------- helpers ---------- */
-
+    /**
+     * Upserts a recipe record, including optional nutritional widget data.
+     *
+     * @param r Recipe data from external API.
+     */
     private void upsertRecipe(RecipeDetailsDTO r) {
         db.insertInto(RECIPE)
                 .set(RECIPE.ID,                     r.id())
@@ -160,6 +171,11 @@ public class MealPlanService {
         });
     }
 
+    /**
+     * Upserts ingredients and recipe-ingredient join records into the database.
+     *
+     * @param r The full recipe details.
+     */
     private void upsertIngredients(RecipeDetailsDTO r) {
         for (var ing : r.extendedIngredients()) {
 
@@ -178,7 +194,11 @@ public class MealPlanService {
                     .execute();
         }
     }
-
+    /**
+     * Builds a shopping list based on all ingredients in the plan.
+     *
+     * @param planId The meal plan ID.
+     */
     private void buildShoppingList(long planId) {
         Long listId = (Long) db.fetchValue(
                 "insert into shopping_list(meal_plan_id) values (?) returning id",
@@ -233,6 +253,13 @@ public class MealPlanService {
                     .execute();
         }
     }
+    /**
+     * Fetches the detailed view of a given meal plan for a user.
+     *
+     * @param userId The user ID.
+     * @param planId The plan ID.
+     * @return A full {@link MealPlanDetailsDTO} with meals and shopping list.
+     */
     public MealPlanDetailsDTO getPlanById(long userId, long planId) {
         var plan = db.selectFrom(MEAL_PLAN)
                 .where(MEAL_PLAN.ID.eq(planId).and(MEAL_PLAN.USER_ID.eq(userId)))
@@ -344,6 +371,12 @@ public class MealPlanService {
                 shoppingList,days
         );
     }
+    /**
+     * Returns a list of all meal plans for a user in descending order of creation.
+     *
+     * @param userId The user ID.
+     * @return List of {@link MealPlanSummaryDTO} entries.
+     */
     public List<MealPlanSummaryDTO> getUserPlans(long userId) {
         return db.select(
                         MEAL_PLAN.ID,
@@ -362,6 +395,12 @@ public class MealPlanService {
                         r.get(MEAL_PLAN.CREATED_AT).toString()
                 ));
     }
+    /**
+     * Deletes a meal plan and all associated data (recipes, shopping list items, etc.).
+     *
+     * @param userId The user who owns the plan.
+     * @param planId The ID of the plan to delete.
+     */
     public void deletePlan(long userId, long planId) {
         var valid = db.fetchExists(
                 db.selectFrom(MEAL_PLAN)
@@ -388,6 +427,12 @@ public class MealPlanService {
                 .where(MEAL_PLAN.ID.eq(planId))
                 .execute();
     }
+    /**
+     * Retrieves the most recently created meal plan for a given user.
+     *
+     * @param userId The user ID.
+     * @return The most recent {@link MealPlanDetailsDTO}.
+     */
     public MealPlanDetailsDTO getLatestPlanForUser(Long userId){
         Long latestPlanId = db.select(MEAL_PLAN.ID)
                 .from(MEAL_PLAN)
@@ -401,6 +446,13 @@ public class MealPlanService {
         }
         return getPlanById(userId, latestPlanId);
     }
+    /**
+     * Creates a new plan with the same macro targets as an existing plan.
+     *
+     * @param userId The user ID.
+     * @param planId The plan to regenerate.
+     * @return The newly created plan.
+     */
     public MealPlanDetailsDTO regenerate(Long userId, Long planId){
         MealPlanDetailsDTO plan = getPlanById(userId, planId);
         long newPlanId = createPlan(userId,plan.targetKcal().intValue()
@@ -410,6 +462,12 @@ public class MealPlanService {
                 , plan.days());
         return getPlanById(userId, newPlanId);
     }
+    /**
+     * Converts string values like "110 kcal" or "20 g" into numeric {@link BigDecimal}.
+     *
+     * @param input Raw string from Spoonacular widget.
+     * @return Parsed numeric value or null if parsing fails.
+     */
     private BigDecimal parse(String input) {
         try {
             return new BigDecimal(input.replaceAll("[^\\d.]", ""));

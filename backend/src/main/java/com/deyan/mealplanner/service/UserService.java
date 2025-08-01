@@ -5,14 +5,12 @@ import com.deyan.mealplanner.exceptions.AlreadyExistsException;
 import com.deyan.mealplanner.exceptions.NotFoundException;
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
-
 import org.jooq.Table;
 import org.jooq.impl.DSL;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -21,20 +19,35 @@ import static com.deyan.mealplanner.jooq.tables.UserProgress.USER_PROGRESS;
 import static com.deyan.mealplanner.jooq.tables.Users.USERS;
 import static org.jooq.impl.DSL.*;
 
+/**
+ * Service for managing user accounts, weight tracking, and achievements.
+ */
 @Service
 @Slf4j
 public class UserService {
+
     private final DSLContext dsl;
     private final PasswordEncoder passwordEncoder;
     private final AchievementService achievementService;
 
+    /**
+     * Constructs the service with required dependencies.
+     *
+     * @param dsl                 The JOOQ DSL context for database queries.
+     * @param passwordEncoder     Encoder for securely storing passwords.
+     * @param achievementService  Service for updating user achievements.
+     */
     public UserService(DSLContext dsl, PasswordEncoder passwordEncoder, AchievementService achievementService) {
         this.dsl = dsl;
         this.passwordEncoder = passwordEncoder;
         this.achievementService = achievementService;
     }
 
+    /**
+     * Returns all users with their latest weight log (if any).
+     */
     public List<UserDTO> getAllUsers() {
+        // Subquery for latest progress
         Table<?> latestProgress = dsl
                 .select(
                         USER_PROGRESS.USER_ID,
@@ -48,7 +61,6 @@ public class UserService {
                 .from(USER_PROGRESS)
                 .asTable("latest_progress");
 
-// Step 2: Join users with their latest progress (where rn = 1)
         return dsl.select(
                         USERS.ID,
                         USERS.NAME,
@@ -71,11 +83,19 @@ public class UserService {
                         record.get(field(name("latest_progress", "date"), LocalDateTime.class))
                 ));
     }
-    public UserDTO findByEmail(String email){
+
+    /**
+     * Finds a user by email.
+     *
+     * @param email Email address to search for.
+     * @return UserDTO with latest weight log if exists.
+     */
+    public UserDTO findByEmail(String email) {
         var userRecord = dsl.selectFrom(USERS)
                 .where(USERS.EMAIL.eq(email))
                 .fetchOne();
-        if(userRecord == null){
+
+        if (userRecord == null) {
             throw new NotFoundException("User not found with email: " + email);
         }
 
@@ -94,24 +114,29 @@ public class UserService {
                 latestProgress != null ? latestProgress.getDate() : null
         );
     }
+
+    /**
+     * Creates a new user and logs initial weight.
+     */
     public UserDTO createUser(CreateUserRequest request) {
-        boolean emailExists = dsl.fetchExists(dsl.selectFrom(USERS).where(USERS.EMAIL.eq(request.email())));
-                if(emailExists){
-                    throw new AlreadyExistsException("Email already in use");
-                }
+        boolean emailExists = dsl.fetchExists(
+                dsl.selectFrom(USERS).where(USERS.EMAIL.eq(request.email())));
+
+        if (emailExists) {
+            throw new AlreadyExistsException("Email already in use");
+        }
+
         dsl.insertInto(USERS)
                 .set(USERS.NAME, request.name())
                 .set(USERS.EMAIL, request.email())
                 .set(USERS.PASSWORD, passwordEncoder.encode(request.password()))
                 .set(USERS.DAY_STREAK, 0)
-                .execute(); // <— no returning
+                .execute();
 
-// then manually fetch the ID:
         var userId = dsl.select(USERS.ID)
                 .from(USERS)
-                .where(USERS.EMAIL.eq(request.email())) // or any unique field
+                .where(USERS.EMAIL.eq(request.email()))
                 .fetchOne(USERS.ID);
-
 
         var today = LocalDateTime.now();
 
@@ -127,6 +152,9 @@ public class UserService {
         );
     }
 
+    /**
+     * Fetches a user by ID with latest weight entry.
+     */
     public UserDTO getUserById(Long id) {
         var userRecord = dsl.selectFrom(USERS)
                 .where(USERS.ID.eq(id))
@@ -152,9 +180,10 @@ public class UserService {
         );
     }
 
+    /**
+     * Deletes a user and all related progress entries.
+     */
     public void deleteUserById(Long id) {
-
-        // Delete child records first
         dsl.deleteFrom(USER_PROGRESS)
                 .where(USER_PROGRESS.USER_ID.eq(id))
                 .execute();
@@ -167,12 +196,15 @@ public class UserService {
             throw new NotFoundException("User not found or already deleted");
         }
     }
+
+    /**
+     * Adds a new weight entry for a user and updates their streak.
+     */
     public WeightEntryDTO addUserWeightEntry(Long userId, BigDecimal weight) {
         boolean exists = dsl.fetchExists(
                 dsl.selectOne()
                         .from(USERS)
-                        .where(USERS.ID.eq(userId))
-        );
+                        .where(USERS.ID.eq(userId)));
 
         if (!exists) {
             throw new NotFoundException("User not found with ID: " + userId);
@@ -181,26 +213,24 @@ public class UserService {
         LocalDate today = LocalDate.now();
         LocalDateTime now = LocalDateTime.now();
 
-        // Check if user has already logged today
         boolean alreadyLoggedToday = dsl.fetchExists(
                 dsl.selectOne()
                         .from(USER_PROGRESS)
                         .where(USER_PROGRESS.USER_ID.eq(userId))
-                        .and(USER_PROGRESS.DATE.cast(LocalDate.class).eq(today))
-        );
-        if(alreadyLoggedToday){
+                        .and(USER_PROGRESS.DATE.cast(LocalDate.class).eq(today)));
+
+        if (alreadyLoggedToday) {
             throw new AlreadyExistsException("You already logged your weight today.");
         }
-        // Insert new weight entry
+
         dsl.insertInto(USER_PROGRESS)
                 .set(USER_PROGRESS.USER_ID, userId)
                 .set(USER_PROGRESS.WEIGHT, weight)
                 .set(USER_PROGRESS.DATE, now)
                 .execute();
 
-        int newStreak = 1; // default to 1 if this is the first/only entry
+        int newStreak = 1;
 
-        // Fetch latest entry date before today
         LocalDate lastEntryDate = dsl
                 .select(USER_PROGRESS.DATE)
                 .from(USER_PROGRESS)
@@ -224,21 +254,28 @@ public class UserService {
             newStreak = currentStreak + 1;
         }
 
-        // Update streak in USERS table
         dsl.update(USERS)
                 .set(USERS.DAY_STREAK, newStreak)
                 .where(USERS.ID.eq(userId))
                 .execute();
+
         List<Long> unlocked = achievementService.updateAfterWeightLog(userId, newStreak);
 
-        return new WeightEntryDTO(weight, now,unlocked);
+        return new WeightEntryDTO(weight, now, unlocked);
     }
+
+    /**
+     * Returns a list of unlocked and in-progress achievements for the given user.
+     */
     public List<AchievementDTO> getUserAchievements(Long userId) {
         return achievementService.getAchievementsForUser(userId);
     }
 
+    /**
+     * Returns the user's last 30 days of weight entries (for charting).
+     */
     public List<WeightChartDTO> getRecentWeights(Long userId) {
-        return dsl.select(USER_PROGRESS.DATE.cast(LocalDate.class),USER_PROGRESS.WEIGHT)
+        return dsl.select(USER_PROGRESS.DATE.cast(LocalDate.class), USER_PROGRESS.WEIGHT)
                 .from(USER_PROGRESS)
                 .where(USER_PROGRESS.USER_ID.eq(userId))
                 .and(USER_PROGRESS.DATE.greaterOrEqual(LocalDateTime.now().minusDays(30)))
