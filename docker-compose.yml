@@ -1,23 +1,54 @@
-version: "3.8"
-
+# docker-compose.yml
 services:
   redis:
     image: redis:7-alpine
     container_name: mealplanner-redis
     ports:
-      - "6379:6379"            # ← host 6379 → container 6379
+      - "6379:6379"
     command: ["redis-server", "--save", "", "--appendonly", "no"]
 
   postgres:
-    image: postgres:15
+    image: bitnami/postgresql:latest
     ports:
-      - "15433:5432"
+      - "5433:5432"
     environment:
-      POSTGRES_DB: mealplanner
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRESQL_DATABASE: mealplanner
+      POSTGRESQL_USERNAME: postgres
+      POSTGRESQL_PASSWORD: postgres
     volumes:
       - mealplanner-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/mealplanner?reWriteBatchedInserts=true
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    env_file:
+      - .env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_URL=http://localhost:8080
+    depends_on:
+      - backend
 
 volumes:
   mealplanner-data:

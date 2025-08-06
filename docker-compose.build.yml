@@ -1,0 +1,27 @@
+version: '3.8'
+services:
+  postgres:
+    image: bitnami/postgresql:latest
+    environment:
+      POSTGRESQL_DATABASE: mealplanner
+      POSTGRESQL_USERNAME: postgres
+      POSTGRESQL_PASSWORD: postgres
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  jooq-run:
+    image: gradle:8.14.2-jdk17
+    working_dir: /app
+    volumes:
+      - ./backend:/app
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/mealplanner
+    command: ["./gradlew", "flywayMigrate", "generateJooq", "--no-daemon"]
+    depends_on:
+      postgres:
+        condition: service_healthy

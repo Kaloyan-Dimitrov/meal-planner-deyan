@@ -60,6 +60,7 @@ END IF;
 END IF;
 
     IF col_info.identity_generation IS NULL THEN
+        EXECUTE format('ALTER TABLE %I ALTER COLUMN id DROP DEFAULT', p_tab);
         EXECUTE format('ALTER TABLE %I ALTER COLUMN id DROP IDENTITY IF EXISTS',
                        p_tab);
 EXECUTE format('ALTER TABLE %I ALTER COLUMN id '||
